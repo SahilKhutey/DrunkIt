@@ -1,0 +1,50 @@
+name: FACCP CI Workflow
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  typecheck-ts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+
+  test-python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-asyncio pytest-cov
+          pip install -e services/_common
+          pip install -e services/identity-service
+          pip install -e services/compliance-service
+          pip install -e services/audit-service
+          pip install -e services/order-service
+          pip install -e services/consumer-service
+          pip install -e services/retailer-service
+          pip install -e services/catalog-service
+          pip install -e services/inventory-service
+          pip install -e services/risk-service
+          pip install -e services/verification-service
+          pip install -e services/delivery-service
+          pip install -e services/notification-service
+          pip install -e services/api-gateway
+      - name: Run unit tests
+        run: pytest tests/unit/ --cov=services/

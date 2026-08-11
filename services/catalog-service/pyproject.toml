@@ -1,0 +1,13 @@
+[project]
+name = "faccp-catalog-service"
+version = "0.1.0"
+description = "FACCP Product Taxonomy and Catalog Service"
+dependencies = [
+    "fastapi>=0.111.0",
+    "uvicorn[standard]>=0.30.0",
+    "pydantic>=2.7.0"
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

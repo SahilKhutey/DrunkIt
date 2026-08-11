@@ -1,0 +1,21 @@
+{
+  "jurisdictionId": "IN-MH",
+  "name": "Maharashtra Excise Regulation Policy",
+  "version": "1.0",
+  "legalDrinkingAge": 25,
+  "categorySpecificAge": {
+    "BEER": 21,
+    "WINE": 21,
+    "SPIRITS": 25
+  },
+  "permittedHours": {
+    "start": "10:00",
+    "end": "22:30"
+  },
+  "maxPerTransactionVolumeMl": 4500,
+  "prohibitedDays": ["2026-10-02", "2026-01-26", "2026-08-15"],
+  "licenseTypesPermitted": ["FL-I", "FL-III", "FL-BR"],
+  "permitRequired": true,
+  "deliveryVerificationRequired": true,
+  "otpHandoverRequired": true
+}

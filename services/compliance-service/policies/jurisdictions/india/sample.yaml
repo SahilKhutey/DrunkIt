@@ -1,0 +1,40 @@
+# Sample jurisdiction policy file
+jurisdiction: IN-CG
+name: Chhattisgarh
+version: "1.0"
+
+age:
+  min_age: 21
+  verification_required: true
+  acceptable_documents:
+    - aadhaar
+    - passport
+    - driving_license
+
+sales_hours:
+  weekdays: { start: "10:00", end: "22:00" }
+  weekends: { start: "10:00", end: "22:00" }
+  dry_days: []
+
+product_categories:
+  - beer
+  - wine
+  - spirit
+  - rtd
+
+quantity_limits:
+  per_order: 12
+  per_day: 24
+  per_month: 200
+
+delivery:
+  permitted_zones: []
+  prohibited_areas:
+    - educational_institutions_radius_m: 200
+    - religious_places_radius_m: 100
+  delivery_hours: { start: "11:00", end: "21:00" }
+
+verification:
+  consumer: required
+  recipient: required
+  at_delivery: true

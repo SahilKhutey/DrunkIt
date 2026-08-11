@@ -1,0 +1,15 @@
+{
+  "jurisdictionId": "IN-KA",
+  "name": "Karnataka Excise Regulation Policy",
+  "version": "1.0",
+  "legalDrinkingAge": 21,
+  "permittedHours": {
+    "start": "10:00",
+    "end": "22:30"
+  },
+  "maxPerTransactionVolumeMl": 9000,
+  "prohibitedDays": ["2026-10-02", "2026-01-26", "2026-08-15"],
+  "licenseTypesPermitted": ["CL-2", "CL-9", "CL-11C"],
+  "deliveryVerificationRequired": true,
+  "otpHandoverRequired": true
+}

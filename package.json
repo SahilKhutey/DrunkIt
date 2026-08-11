@@ -1,0 +1,24 @@
+{
+  "name": "faccp-root",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Federated Alcohol Commerce, Compliance & Trust Platform (FACCP)",
+  "packageManager": "pnpm@9.1.0",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "test": "turbo test",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "format": "prettier --write \"**/*.{ts,tsx,md,json,yml}\""
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3",
+    "typescript": "^5.5.4",
+    "turbo": "^2.0.14"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  }
+}

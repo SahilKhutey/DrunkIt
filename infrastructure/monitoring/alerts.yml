@@ -1,0 +1,92 @@
+groups:
+  - name: faccp-slos
+    interval: 30s
+    rules:
+      - alert: OrderProcessingLatencyHigh
+        expr: |
+          histogram_quantile(0.95, sum(rate(order_processing_duration_seconds_bucket[5m])) by (le) ) > 5
+        for: 5m
+        labels:
+          severity: warning
+          slo: order_processing
+        annotations:
+          summary: "Order processing p95 latency > 5s"
+          description: "Order processing latency exceeds SLO target. Check order-service and compliance-service."
+
+      - alert: OrderProcessingLatencyCritical
+        expr: |
+          histogram_quantile(0.99, sum(rate(order_processing_duration_seconds_bucket[5m])) by (le) ) > 15
+        for: 2m
+        labels:
+          severity: critical
+          slo: order_processing
+        annotations:
+          summary: "Order processing p99 latency > 15s (SLO breach)"
+
+      - alert: PaymentSuccessRateLow
+        expr: |
+          (
+            sum(rate(payment_events_total{event_type="payment.captured"}[15m]))
+            /
+            sum(rate(payment_events_total{event_type=~"payment.(captured|failed)"}[15m]))
+          ) < 0.95
+        for: 5m
+        labels:
+          severity: critical
+          slo: payment
+        annotations:
+          summary: "Payment success rate below 95%"
+
+      - alert: ComplianceEvaluationLatencyHigh
+        expr: |
+          histogram_quantile(0.95, sum(rate(compliance_evaluation_duration_seconds_bucket[5m])) by (le) ) > 1
+        for: 5m
+        labels:
+          severity: warning
+          slo: compliance
+        annotations:
+          summary: "Compliance evaluation p95 latency > 1s"
+
+      - alert: AuditChainBroken
+        expr: audit_chain_broken_events > 0
+        for: 0m
+        labels:
+          severity: critical
+          compliance: audit
+        annotations:
+          summary: "Audit chain has broken events — possible tampering"
+
+      - alert: HighRiskTransactionVolume
+        expr: |
+          sum(rate(risk_evaluated_v2_total{level="HIGH"}[5m])) > 10
+        for: 5m
+        labels:
+          severity: warning
+          security: risk
+        annotations:
+          summary: "High-risk transaction rate elevated"
+
+      - alert: ServiceDown
+        expr: up{job="faccp-services"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.instance }} is down"
+
+      - alert: DatabaseConnectionPoolExhausted
+        expr: |
+          db_pool_connections_in_use / db_pool_connections_max > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "DB connection pool near capacity"
+
+      - alert: KafkaLag
+        expr: kafka_consumer_lag > 10000
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Kafka consumer lag > 10k messages"
