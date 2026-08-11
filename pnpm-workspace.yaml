@@ -1,3 +1,5 @@
 packages:
-  - 'apps/*'
+  - 'apps/admin-web'
+  - 'apps/consumer-web'
+  - 'apps/retailer-web'
   - 'packages/*'

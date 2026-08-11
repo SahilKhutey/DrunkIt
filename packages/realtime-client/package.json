@@ -5,11 +5,10 @@
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "build": "tsc",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "tsup": "^8.0.2",
-    "typescript": "^5.4.5"
+    "typescript": "^5.5.4"
   }
 }

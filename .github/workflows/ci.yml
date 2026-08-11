@@ -31,20 +31,20 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pytest pytest-asyncio pytest-cov
+          pip install pytest pytest-asyncio
           pip install -e services/_common
-          pip install -e services/identity-service
-          pip install -e services/compliance-service
-          pip install -e services/audit-service
-          pip install -e services/order-service
-          pip install -e services/consumer-service
-          pip install -e services/retailer-service
-          pip install -e services/catalog-service
-          pip install -e services/inventory-service
-          pip install -e services/risk-service
-          pip install -e services/verification-service
-          pip install -e services/delivery-service
-          pip install -e services/notification-service
-          pip install -e services/api-gateway
       - name: Run unit tests
-        run: pytest tests/unit/ --cov=services/
+        shell: bash
+        run: |
+          set -euo pipefail
+          for test_file in tests/unit/test_*.py; do
+            case "$test_file" in
+              tests/unit/test_phase5.py|tests/unit/test_phase6.py|tests/unit/test_phase6_marketing.py)
+                continue
+                ;;
+            esac
+            PYTHONPATH="$PWD/services/_common" pytest "$test_file" -q -p no:cacheprovider
+          done
+          PYTHONPATH="$PWD/services/_common:$PWD/services/developer-portal" pytest tests/unit/test_phase5.py -q -p no:cacheprovider
+          PYTHONPATH="$PWD/services/_common:$PWD/services/cdp-service" pytest tests/unit/test_phase6.py -q -p no:cacheprovider
+          PYTHONPATH="$PWD/services/_common:$PWD/services/marketing-service" pytest tests/unit/test_phase6_marketing.py -q -p no:cacheprovider
