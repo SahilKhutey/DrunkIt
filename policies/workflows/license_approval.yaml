@@ -1,0 +1,75 @@
+name: license_approval
+version: "1.0"
+description: "State machine for retailer license approval process"
+
+variables:
+  min_review_hours: 24
+  auto_approve_threshold_score: 85
+
+states:
+  - name: SUBMITTED
+    is_initial: true
+    on_enter: action.record_submission
+  - name: AUTO_SCREENING
+    on_enter: action.run_automated_screening
+  - name: MANUAL_REVIEW
+    on_enter: action.assign_to_officer
+    timeout_seconds: 86400
+    timeout_to: AUTO_APPROVE
+  - name: ADDITIONAL_DOCS_REQUIRED
+    on_enter: action.request_additional_docs
+  - name: AUTO_APPROVE
+    on_enter: action.approve_license
+    is_final: true
+  - name: OFFICER_APPROVED
+    is_final: true
+    on_enter: action.approve_license
+  - name: REJECTED
+    is_final: true
+    on_enter: action.reject_license
+
+transitions:
+  - from_state: SUBMITTED
+    to_state: AUTO_SCREENING
+    event: null
+
+  - from_state: AUTO_SCREENING
+    to_state: AUTO_APPROVE
+    event: screening_complete
+    condition: screening_score >= auto_approve_threshold_score
+
+  - from_state: AUTO_SCREENING
+    to_state: MANUAL_REVIEW
+    event: screening_complete
+    condition: screening_score < auto_approve_threshold_score
+
+  - from_state: MANUAL_REVIEW
+    to_state: ADDITIONAL_DOCS_REQUIRED
+    event: docs_needed
+
+  - from_state: MANUAL_REVIEW
+    to_state: OFFICER_APPROVED
+    event: officer_approved
+    requires_role: STATE_ADMIN
+
+  - from_state: MANUAL_REVIEW
+    to_state: REJECTED
+    event: officer_rejected
+    requires_role: STATE_ADMIN
+
+  - from_state: ADDITIONAL_DOCS_REQUIRED
+    to_state: MANUAL_REVIEW
+    event: docs_provided
+
+  - from_state: ADDITIONAL_DOCS_REQUIRED
+    to_state: REJECTED
+    event: officer_rejected
+    requires_role: STATE_ADMIN
+
+actions:
+  record_submission: "log('License application received: ' + application_id)"
+  run_automated_screening: "screening.check_kyc_and_license_data()"
+  assign_to_officer: "notify.assign_to_state_officer(jurisdiction)"
+  request_additional_docs: "notify.request_documents(consumer_id, missing_docs)"
+  approve_license: "license.activate(license_id)"
+  reject_license: "license.reject(license_id, reason)"

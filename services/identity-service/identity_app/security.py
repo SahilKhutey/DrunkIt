@@ -1,8 +1,9 @@
+import os
 import time
 import jwt
 import bcrypt
 
-SECRET_KEY = "faccp-identity-vault-super-secret-key-32bytes"
+SECRET_KEY = os.getenv("JWT_SECRET_KEY", "env_secret_key_placeholder")
 ALGORITHM = "HS256"
 TOKEN_EXPIRE_SECONDS = 86400
 

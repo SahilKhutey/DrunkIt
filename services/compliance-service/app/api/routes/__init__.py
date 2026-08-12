@@ -1,1 +1,3 @@
-from app.api.routes.policies import router as policies_router
+from app.api.routes.compliance import router as compliance_router
+
+__all__ = ["compliance_router"]

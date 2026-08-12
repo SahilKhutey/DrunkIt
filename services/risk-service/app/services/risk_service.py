@@ -1,56 +1,98 @@
+"""Risk service: Real-time Fraud Detection & Risk Scoring Engine."""
+
 from __future__ import annotations
 
+import json
+import secrets
+from datetime import datetime, timezone
+from typing import Any
+
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.db.models import RiskAssessment
-from app.schemas.risk import RiskEvaluateRequest, RiskEvaluateResponse
+
+from faccp_common.communication.envelope import create_envelope
+from faccp_common.communication.producer import EventProducer
+from faccp_common.logging import get_logger
+
+from app.db.models import FraudPatternRule, RiskEvaluation
+from app.schemas.risk import FraudRuleCreate, RiskEvaluationRequest
+
+logger = get_logger(__name__)
 
 
 class RiskService:
+    """Fraud score evaluator analyzing velocity, device anomalies, and amount thresholds."""
 
-    def __init__(self, db: AsyncSession) -> None:
+    def __init__(self, db: AsyncSession, producer: EventProducer | None = None) -> None:
         self.db = db
+        self.producer = producer
 
-    async def evaluate_risk(self, req: RiskEvaluateRequest) -> RiskEvaluateResponse:
-        score = 0.1
-        factors = {}
+    async def evaluate_risk(self, payload: RiskEvaluationRequest) -> RiskEvaluation:
+        score = 0.05
+        reasons = []
 
-        if req.amount > 10000:
-            score += 0.3
-            factors["high_value_order"] = True
+        if payload.amount_inr > 25000.0:
+            score += 0.35
+            reasons.append("HIGH_TRANSACTION_VALUE")
 
-        if req.historical_order_count == 0:
-            score += 0.2
-            factors["first_time_buyer"] = True
+        if payload.velocity_count_1h > 3:
+            score += 0.40
+            reasons.append("HIGH_VELOCITY_BURST")
 
-        score = min(score, 1.0)
-        level = "LOW"
-        recommendation = "APPROVE"
+        if payload.is_new_device:
+            score += 0.15
+            reasons.append("UNRECOGNIZED_DEVICE")
 
-        if score > 0.7:
-            level = "HIGH"
-            recommendation = "BLOCK"
-        elif score > 0.4:
-            level = "MEDIUM"
-            recommendation = "MANUAL_REVIEW"
+        decision = "PASS"
+        if score >= 0.70:
+            decision = "REJECT"
+        elif score >= 0.40:
+            decision = "REVIEW"
 
-        assessment = RiskAssessment(
-            subject_id=req.subject_id,
-            subject_type=req.subject_type,
-            risk_score=score,
-            risk_level=level,
-            risk_factors=factors,
-            recommendation=recommendation,
+        code = f"RSK-{secrets.token_hex(4).upper()}"
+        eval_rec = RiskEvaluation(
+            evaluation_code=code,
+            entity_type=payload.entity_type,
+            entity_id=payload.entity_id,
+            risk_score=min(score, 1.0),
+            decision=decision,
+            reason_codes_json=json.dumps(reasons),
         )
-        self.db.add(assessment)
+        self.db.add(eval_rec)
         await self.db.commit()
-        await self.db.refresh(assessment)
+        await self.db.refresh(eval_rec)
 
-        return RiskEvaluateResponse(
-            id=assessment.id,
-            subject_id=assessment.subject_id,
-            subject_type=assessment.subject_type,
-            risk_score=assessment.risk_score,
-            risk_level=assessment.risk_level,
-            recommendation=assessment.recommendation,
-            risk_factors=assessment.risk_factors,
+        if decision in ("REVIEW", "REJECT"):
+            await self._publish("risk.flagged", {
+                "evaluation_id": eval_rec.id, "entity_type": eval_rec.entity_type,
+                "entity_id": eval_rec.entity_id, "score": eval_rec.risk_score, "decision": decision,
+            })
+        return eval_rec
+
+    async def create_rule(self, payload: FraudRuleCreate) -> FraudPatternRule:
+        rule = FraudPatternRule(
+            rule_name=payload.rule_name,
+            description=payload.description,
+            risk_score_impact=payload.risk_score_impact,
+            is_active=True,
         )
+        self.db.add(rule)
+        await self.db.commit()
+        await self.db.refresh(rule)
+        return rule
+
+    async def list_flagged(self) -> list[RiskEvaluation]:
+        result = await self.db.execute(
+            select(RiskEvaluation).where(RiskEvaluation.decision.in_(["REVIEW", "REJECT"]))
+            .order_by(RiskEvaluation.created_at.desc())
+        )
+        return list(result.scalars().all())
+
+    async def _publish(self, event_type: str, payload: dict) -> None:
+        if not self.producer:
+            return
+        try:
+            envelope = create_envelope(event_type, payload, producer="faccp-risk")
+            await self.producer.publish("risk.events", envelope)
+        except Exception:
+            logger.exception("event_publish_failed", event_type=event_type)

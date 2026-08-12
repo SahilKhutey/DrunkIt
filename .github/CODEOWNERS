@@ -1,0 +1,28 @@
+# CODEOWNERS for FACCP System Constitution & Platform Governance
+
+# Global Default
+* @faccp/platform-core
+
+# System Constitution & Protocols
+/docs/protocols/ @faccp/architecture-lead @faccp/security-admin
+/scripts/constitution/ @faccp/architecture-lead @faccp/compliance-officer
+/.github/workflows/ @faccp/devops-lead
+
+# Compliance & Policy Engine
+/services/compliance-service/ @faccp/compliance-officer @faccp/legal-team
+/services/policy-service/ @faccp/compliance-officer
+/policies/ @faccp/compliance-officer @faccp/legal-team
+
+# Identity, Security & Auth
+/services/identity-service/ @faccp/security-admin @faccp/identity-lead
+/services/verification-service/ @faccp/security-admin
+/services/_common/faccp_common/security/ @faccp/security-admin
+
+# Privacy & Audit
+/services/audit-service/ @faccp/security-admin @faccp/compliance-officer
+/services/_common/faccp_common/privacy/ @faccp/dpo
+
+# Commerce & Finance
+/services/payment-service/ @faccp/finance-lead @faccp/security-admin
+/services/pricing-service/ @faccp/finance-lead
+/services/order-service/ @faccp/commerce-lead

@@ -1,21 +1,21 @@
-from functools import lru_cache
+"""Payment service configuration."""
+
+from __future__ import annotations
+
 from faccp_common.config import BaseServiceSettings
 
 
 class PaymentServiceSettings(BaseServiceSettings):
     service_name: str = "faccp-payment"
-    port: int = 8013
-    database_url: str = "postgresql+asyncpg://faccp_admin:faccp_password@localhost:5432/faccp_payment"
-    razorpay_key_id: str = "rzp_test_placeholder"
-    razorpay_key_secret: str = "razorpay_secret_placeholder"
-    stripe_secret_key: str = "sk_test_placeholder"
-    default_currency: str = "INR"
-    webhook_secret: str = "webhook_secret_placeholder"
-    refund_max_days: int = 90
-    platform_commission_pct: float = 8.0
-    delivery_commission_pct: float = 5.0
+    port: int = 8008
+    database_url: str = "postgresql+asyncpg://faccp:faccp_dev_password_change_in_production@localhost:5432/faccp_payment"
 
 
-@lru_cache(maxsize=1)
+_settings: PaymentServiceSettings | None = None
+
+
 def get_settings() -> PaymentServiceSettings:
-    return PaymentServiceSettings()
+    global _settings
+    if _settings is None:
+        _settings = PaymentServiceSettings()
+    return _settings

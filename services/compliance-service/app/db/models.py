@@ -1,172 +1,103 @@
-"""
-Compliance service models.
-
-Stores: policy versions, jurisdiction rules, dry-day calendars,
-product classifications, decisions history, exemption records.
-"""
+"""Compliance service database models."""
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, time
 from typing import Any
 
-from sqlalchemy import (
-    Boolean, Date, DateTime, ForeignKey, Index, Integer, Numeric,
-    String, Text, UniqueConstraint,
-)
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Index, Integer, String, Text, Time
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from faccp_common.models import TimestampMixin, UUIDPrimaryKeyMixin, utc_now
+
 from app.db.base import Base
 
 
-class Jurisdiction(UUIDPrimaryKeyMixin, TimestampMixin, Base):
-    """A regulatory jurisdiction (state, district, country)."""
-    __tablename__ = "jurisdictions"
-
-    code: Mapped[str] = mapped_column(String(32), unique=True, nullable=False, index=True)
-    name: Mapped[str] = mapped_column(String(128), nullable=False)
-    parent_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("jurisdictions.id"), nullable=True)
-    level: Mapped[str] = mapped_column(String(32), nullable=False, index=True)  # country|state|district|city
-    country_code: Mapped[str] = mapped_column(String(2), nullable=False, default="IN")
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, index=True)
-    config: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict, nullable=False)
-
-    parent: Mapped[Jurisdiction | None] = relationship("Jurisdiction", remote_side="Jurisdiction.id", backref="children")
-
-
 class Policy(UUIDPrimaryKeyMixin, TimestampMixin, Base):
-    """A versioned policy bundle for a jurisdiction."""
+    """Regulatory Policy definition governing a jurisdiction."""
+
     __tablename__ = "policies"
 
-    jurisdiction_id: Mapped[str] = mapped_column(String(36), ForeignKey("jurisdictions.id"), nullable=False, index=True)
-    policy_type: Mapped[str] = mapped_column(String(64), nullable=False, index=True)  # sale|delivery|age|product|hours
-    version: Mapped[str] = mapped_column(String(32), nullable=False)
-    name: Mapped[str] = mapped_column(String(256), nullable=False)
+    code: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    rules: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
-    effective_from: Mapped[date] = mapped_column(Date, nullable=False, index=True)
-    effective_until: Mapped[date | None] = mapped_column(Date, nullable=True)
+    jurisdiction: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    category: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, index=True)
-    approved_by: Mapped[str] = mapped_column(String(64), nullable=False)
-    approved_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    source_document: Mapped[str | None] = mapped_column(String(256), nullable=True)
-    checksum: Mapped[str] = mapped_column(String(64), nullable=False)
+    effective_from: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    effective_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    min_purchasing_age: Mapped[int] = mapped_column(Integer, default=21, nullable=False)
+    max_volume_per_transaction_ml: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    max_volume_per_day_ml: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+    sales_start_time: Mapped[time] = mapped_column(Time, default=time(10, 0), nullable=False)
+    sales_end_time: Mapped[time] = mapped_column(Time, default=time(22, 0), nullable=False)
+
+    metadata_json: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict, nullable=False)
+
+    rules: Mapped[list["JurisdictionRule"]] = relationship(
+        "JurisdictionRule", back_populates="policy", cascade="all, delete-orphan"
+    )
+
+
+class JurisdictionRule(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """Specific rule under a Policy."""
+
+    __tablename__ = "jurisdiction_rules"
+
+    policy_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("policies.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    rule_code: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    rule_type: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    parameters: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict, nullable=False)
+    is_mandatory: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+    policy: Mapped["Policy"] = relationship("Policy", back_populates="rules")
+
+
+class DryDayCalendar(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """Calendar of mandatory dry days per jurisdiction."""
+
+    __tablename__ = "dry_day_calendars"
+
+    jurisdiction: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    dry_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    occasion: Mapped[str] = mapped_column(String(128), nullable=False)
+    is_full_day: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    start_time: Mapped[time | None] = mapped_column(Time, nullable=True)
+    end_time: Mapped[time | None] = mapped_column(Time, nullable=True)
 
     __table_args__ = (
-        UniqueConstraint("jurisdiction_id", "policy_type", "version", name="uq_policy_version"),
-        Index("ix_policy_lookup", "jurisdiction_id", "policy_type", "is_active", "effective_from"),
+        Index("ix_dry_days_jur_date", "jurisdiction", "dry_date", unique=True),
     )
 
 
-class DryDay(UUIDPrimaryKeyMixin, TimestampMixin, Base):
-    """Dates on which alcohol sales are prohibited."""
-    __tablename__ = "dry_days"
+class LicenseRequirement(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """State-specific store license requirements."""
 
-    jurisdiction_id: Mapped[str] = mapped_column(String(36), ForeignKey("jurisdictions.id"), nullable=False, index=True)
-    date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
-    reason: Mapped[str] = mapped_column(String(256), nullable=False)
-    is_recurring: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    recurring_rule: Mapped[str | None] = mapped_column(String(128), nullable=True)  # e.g., "last_sunday_of_month"
-    overrides_allowed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    approved_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    __tablename__ = "license_requirements"
 
-    __table_args__ = (
-        UniqueConstraint("jurisdiction_id", "date", name="uq_jurisdiction_dry_day"),
-    )
+    jurisdiction: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    license_type: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    issuing_authority: Mapped[str] = mapped_column(String(128), nullable=False)
+    validity_months: Mapped[int] = mapped_column(Integer, default=12, nullable=False)
+    requires_renewal_notice_days: Mapped[int] = mapped_column(Integer, default=30, nullable=False)
 
 
-class ProductClassification(UUIDPrimaryKeyMixin, TimestampMixin, Base):
-    """How products are classified for regulatory purposes."""
-    __tablename__ = "product_classifications"
+class ComplianceCheck(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """Audit record for every compliance evaluation."""
 
-    jurisdiction_id: Mapped[str] = mapped_column(String(36), ForeignKey("jurisdictions.id"), nullable=False, index=True)
-    category: Mapped[str] = mapped_column(String(64), nullable=False, index=True)  # beer|wine|spirit|rtd
-    subcategory: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    min_age: Mapped[int] = mapped_column(Integer, nullable=False)
-    max_abv: Mapped[float | None] = mapped_column(Numeric(5, 2), nullable=True)
-    min_abv: Mapped[float | None] = mapped_column(Numeric(5, 2), nullable=True)
-    permitted_packaging: Mapped[list[str]] = mapped_column(ARRAY(String), default=list, nullable=False)
-    min_bottle_size_ml: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    max_bottle_size_ml: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    quantity_limit_per_order: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    quantity_limit_per_day: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    quantity_limit_per_month: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    special_restrictions: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict, nullable=False)
+    __tablename__ = "compliance_checks"
 
-
-class Decision(UUIDPrimaryKeyMixin, TimestampMixin, Base):
-    """Append-only history of every compliance decision."""
-    __tablename__ = "decisions"
-
-    decision_id: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
-    subject_type: Mapped[str] = mapped_column(String(32), nullable=False, index=True)  # order|retailer|product|consumer
-    subject_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
-    jurisdiction_code: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
-    decision: Mapped[str] = mapped_column(String(16), nullable=False, index=True)  # allow|deny|review
-    confidence: Mapped[float] = mapped_column(Numeric(4, 3), default=1.0, nullable=False)
-    reasons: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list, nullable=False)
-    matched_rules: Mapped[list[str]] = mapped_column(ARRAY(String), default=list, nullable=False)
-    policy_versions: Mapped[dict[str, str]] = mapped_column(JSONB, default=dict, nullable=False)
-    evaluation_ms: Mapped[int] = mapped_column(Integer, nullable=False)
-    requester: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    context: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict, nullable=False)
-    is_overridden: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    overridden_by: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    overridden_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    override_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
-
-
-class Exemption(UUIDPrimaryKeyMixin, TimestampMixin, Base):
-    """Granted exemptions from specific rules (e.g., tourist zones)."""
-    __tablename__ = "exemptions"
-
-    holder_type: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
-    holder_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
-    jurisdiction_id: Mapped[str] = mapped_column(String(36), ForeignKey("jurisdictions.id"), nullable=False, index=True)
-    rule_type: Mapped[str] = mapped_column(String(64), nullable=False)
-    rule_reference: Mapped[str] = mapped_column(String(256), nullable=False)
-    reason: Mapped[str] = mapped_column(Text, nullable=False)
-    issued_by: Mapped[str] = mapped_column(String(64), nullable=False)
-    valid_from: Mapped[date] = mapped_column(Date, nullable=False)
-    valid_until: Mapped[date] = mapped_column(Date, nullable=False, index=True)
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, index=True)
-    document_reference: Mapped[str | None] = mapped_column(String(256), nullable=True)
-
-
-class PolicyMigration(UUIDPrimaryKeyMixin, TimestampMixin, Base):
-    __tablename__ = "policy_migrations"
-
-    migration_number: Mapped[str] = mapped_column(String(32), unique=True, nullable=False, index=True)
-    jurisdiction_code: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
-    policy_type: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
-    from_version: Mapped[str] = mapped_column(String(32), nullable=False)
-    to_version: Mapped[str] = mapped_column(String(32), nullable=False)
-    rules_diff: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
-
-    status: Mapped[str] = mapped_column(String(32), default="DRAFT", nullable=False, index=True)
-    tests_total: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    tests_passed: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    tests_failed: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-
-    prepared_by: Mapped[str] = mapped_column(String(64), nullable=False)
-    approved_by: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    activated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    rolled_back_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    rollback_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
-
-
-class PolicyTestCase(UUIDPrimaryKeyMixin, Base):
-    __tablename__ = "policy_test_cases"
-
-    migration_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("policy_migrations.id", ondelete="CASCADE"), nullable=False, index=True
-    )
-    name: Mapped[str] = mapped_column(String(256), nullable=False)
-    input_context: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
-    expected_decision: Mapped[str] = mapped_column(String(16), nullable=False)
-    actual_decision: Mapped[str | None] = mapped_column(String(16), nullable=True)
-    passed: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
-    error: Mapped[str | None] = mapped_column(Text, nullable=True)
-
+    reference_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    check_type: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    jurisdiction: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    actor_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    is_compliant: Mapped[bool] = mapped_column(Boolean, nullable=False, index=True)
+    failure_reasons: Mapped[list[str]] = mapped_column(ARRAY(String), default=list, nullable=False)
+    evaluated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    details: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict, nullable=False)

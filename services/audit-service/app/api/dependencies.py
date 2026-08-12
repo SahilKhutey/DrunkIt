@@ -1,17 +1,23 @@
+"""FastAPI dependencies for audit service."""
+
+from __future__ import annotations
+
+from collections.abc import AsyncGenerator
 from typing import Annotated
-from fastapi import Depends, Request
+
+from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from faccp_common.database import get_db
-from faccp_common.kafka_client import EventProducer
+
 from app.services.audit_service import AuditService
 
 
-async def get_event_producer(request: Request) -> EventProducer | None:
-    return getattr(request.app.state, "event_producer", None)
+def get_db_session() -> AsyncGenerator[AsyncSession, None]:
+    return get_db()
 
 
 def get_audit_service(
-    db: Annotated[AsyncSession, Depends(get_db)],
-    producer: Annotated[EventProducer | None, Depends(get_event_producer)] = None,
+    db: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> AuditService:
-    return AuditService(db=db, producer=producer)
+    return AuditService(db=db)

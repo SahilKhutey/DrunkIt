@@ -1,0 +1,147 @@
+name: Constitution & Architectural Protocols Compliance
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  constitution:
+    name: Platform Governance & Master Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run Master Constitution Audit Engine
+        run: python scripts/constitution/check_compliance.py
+
+      - name: Check Phase 0 Foundation Execution
+        run: bash scripts/ci/check-phase0-foundation.sh
+
+      - name: Check Phase 1 Identity Service Microservice
+        run: bash scripts/ci/check-identity-service.sh
+
+      - name: Check Phase 2 Compliance Service Microservice
+        run: bash scripts/ci/check-compliance-service.sh
+
+      - name: Check Phase 3 Consumer Service Microservice
+        run: bash scripts/ci/check-consumer-service.sh
+
+      - name: Check Phase 4 Retailer Service Microservice
+        run: bash scripts/ci/check-retailer-service.sh
+
+      - name: Check Phase 5 Catalog Service Microservice
+        run: bash scripts/ci/check-catalog-service.sh
+
+      - name: Check Phase 5 Inventory Service Microservice
+        run: bash scripts/ci/check-inventory-service.sh
+
+      - name: Check Phase 6 Order Service Microservice
+        run: bash scripts/ci/check-order-service.sh
+
+      - name: Check Phase 7 Payment Service Microservice
+        run: bash scripts/ci/check-payment-service.sh
+
+      - name: Check Phase 7 Delivery Service Microservice
+        run: bash scripts/ci/check-delivery-service.sh
+
+      - name: Check Phase 8 Audit Service Microservice
+        run: bash scripts/ci/check-audit-service.sh
+
+      - name: Check Phase 8 Risk Service Microservice
+        run: bash scripts/ci/check-risk-service.sh
+
+      - name: Check Phase 8 Realtime Service Microservice
+        run: bash scripts/ci/check-realtime-service.sh
+
+      - name: Check Phase 9 Analytics Service Microservice
+        run: bash scripts/ci/check-analytics-service.sh
+
+      - name: Check Phase 10 Recommendation Service Microservice
+        run: bash scripts/ci/check-recommendation-service.sh
+
+      - name: Check Delivery System & Delivery Engine Architecture
+
+
+
+
+
+
+
+
+
+        run: bash scripts/ci/check-delivery-engine.sh
+
+      - name: Check Listing Engine Development Specification
+        run: bash scripts/ci/check-listing-engine-spec.sh
+
+      - name: Check Consumer Listing Engine Architecture
+        run: bash scripts/ci/check-consumer-listing-engine.sh
+
+      - name: Check Product Catalog Admin System Architecture
+        run: bash scripts/ci/check-product-catalog-admin.sh
+
+      - name: Check Web UI Platform Architecture
+        run: bash scripts/ci/check-web-ui-platform.sh
+
+      - name: Check Product Platform Architecture
+        run: bash scripts/ci/check-product-platform.sh
+
+      - name: Check Catalog & Template Platform Architecture
+        run: bash scripts/ci/check-catalog-and-templates.sh
+
+      - name: Check Communication System (5 Layers & Envelopes)
+        run: bash scripts/ci/check-communication-system.sh
+
+      - name: Check Functional Architecture (13 Domains & 71 Modules)
+        run: bash scripts/ci/check-functional-architecture.sh
+
+      - name: Check Development Gate System
+        run: bash scripts/ci/check-development-gates.sh
+
+      - name: Check Authentication, Authorization & Trust Pipeline
+        run: bash scripts/ci/check-auth-pipeline.sh
+
+      - name: Check Source-of-Truth & Data Ownership
+        run: bash scripts/ci/check-source-of-truth.sh
+
+      - name: Check Identity Protocol & Sensitive Operations
+        run: bash scripts/ci/check-identity.sh
+
+      - name: Check Domain Isolation & Bounded Contexts
+        run: bash scripts/ci/check-domain-isolation.sh
+
+      - name: Check Single Responsibility & Method Ceilings
+        run: bash scripts/ci/check-single-responsibility.sh
+
+      - name: Check Shared Code Purity
+        run: bash scripts/ci/check-shared-code.sh
+
+      - name: Check No Hardcoded Secrets
+        run: bash scripts/ci/check-secrets.sh
+
+      - name: Check No Hardcoded Compliance Rules
+        run: bash scripts/ci/check-no-hardcoded-policies.sh
+
+      - name: Check Service Isolation
+        run: bash scripts/ci/check-service-isolation.sh
+
+      - name: Check PII Encryption
+        run: bash scripts/ci/check-pii-encryption.sh
+
+      - name: Check API Conventions
+        run: bash scripts/ci/check-api-conventions.sh
+
+      - name: Check Event Standards
+        run: bash scripts/ci/check-event-standards.sh
+
+      - name: Check Test Directory Structure
+        run: bash scripts/ci/check-test-coverage.sh
+
+      - name: Check Documentation Compliance
+        run: bash scripts/ci/check-documentation.sh

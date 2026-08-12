@@ -1,1 +1,3 @@
-from app.api.routes.orders import router as orders_router
+from app.api.routes.order import router as order_router
+
+__all__ = ["order_router"]

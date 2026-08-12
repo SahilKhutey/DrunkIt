@@ -23,6 +23,10 @@ class GatewaySettings(BaseServiceSettings):
     analytics_service_url: str = "http://localhost:8015"
     realtime_service_url: str = "http://localhost:8016"
     recommendation_service_url: str = "http://localhost:8017"
+    whitelabel_service_url: str = "http://localhost:8018"
+    reporting_service_url: str = "http://localhost:8019"
+    support_service_url: str = "http://localhost:8020"
+
 
 
 

@@ -1,53 +1,79 @@
+"""Recommendation service FastAPI entrypoint."""
+
+from __future__ import annotations
+
 from contextlib import asynccontextmanager
 from typing import Any
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_client import make_asgi_app
-from pydantic import BaseModel
 
-from faccp_common.dto import APIResponse
+from faccp_common.database import close_engine, init_engine
 from faccp_common.middleware import register_exception_handlers, register_middleware
+from faccp_common.telemetry import instrument_fastapi, setup_telemetry
+
+from app.api.routes import recommendation_router
 from app.config import get_settings
-from app.services.recommender import ProductRecommender
+from app.db.base import Base
 
 settings = get_settings()
-recommender = ProductRecommender()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> Any:
-    # Seed mock products for recommendation testing
-    recommender.set_product_attributes("p1", {"name": "Single Malt Scotch 12Y", "category": "spirit", "brand": "Glen", "abv": 40})
-    recommender.set_product_attributes("p2", {"name": "Craft IPA Beer", "category": "beer", "brand": "Bira", "abv": 5})
-    recommender.set_product_attributes("p3", {"name": "Cabernet Sauvignon", "category": "wine", "brand": "Sula", "abv": 13})
-    recommender.record_interaction("user1", "p1", "purchase")
-    recommender.record_interaction("user1", "p3", "view")
+    init_engine(
+        settings.database_url,
+        pool_size=settings.database_pool_size,
+        max_overflow=settings.database_max_overflow,
+        pool_timeout=settings.database_pool_timeout,
+        echo=settings.database_echo,
+    )
+    from faccp_common.database import get_engine
+    engine = get_engine()
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    setup_telemetry(
+        service_name=settings.service_name,
+        service_version=settings.service_version,
+        environment=settings.environment,
+        otlp_endpoint=settings.otel_exporter_otlp_endpoint,
+    )
     yield
 
-
-class RecommendRequest(BaseModel):
-    user_id: str
-    n: int = 10
-    context: dict[str, Any] | None = None
+    await close_engine()
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="FACCP Recommendation Service", version=settings.service_version, lifespan=lifespan)
-    app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins_list, allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+    app = FastAPI(
+        title="FACCP Recommendation Service",
+        version=settings.service_version,
+        description="Personalized Recommendations & CDP Affinity Matching Engine",
+        lifespan=lifespan,
+    )
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origins_list,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
     register_middleware(app)
     register_exception_handlers(app)
+    app.include_router(recommendation_router, prefix="/api/v1")
     app.mount("/metrics", make_asgi_app())
 
     @app.get("/health")
-    async def health():
-        return {"status": "ok", "service": settings.service_name}
+    async def health() -> dict[str, Any]:
+        return {"status": "ok", "service": settings.service_name,
+                "version": settings.service_version, "environment": settings.environment}
 
-    @app.post("/api/v1/recommendations")
-    async def get_recommendations(payload: RecommendRequest) -> APIResponse[list[dict]]:
-        results = recommender.recommend(payload.user_id, n=payload.n, context=payload.context)
-        return APIResponse(data=results)
+    @app.get("/ready")
+    async def ready() -> dict[str, Any]:
+        return {"status": "ready", "service": settings.service_name}
 
+    instrument_fastapi(app)
     return app
 
 

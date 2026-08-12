@@ -1,13 +1,21 @@
-from functools import lru_cache
+"""Audit service configuration."""
+
+from __future__ import annotations
+
 from faccp_common.config import BaseServiceSettings
 
 
 class AuditServiceSettings(BaseServiceSettings):
     service_name: str = "faccp-audit"
-    port: int = 8008
-    database_url: str = "postgresql+asyncpg://faccp_admin:faccp_password@localhost:5432/faccp_audit"
+    port: int = 8010
+    database_url: str = "postgresql+asyncpg://faccp:faccp_dev_password_change_in_production@localhost:5432/faccp_audit"
 
 
-@lru_cache(maxsize=1)
+_settings: AuditServiceSettings | None = None
+
+
 def get_settings() -> AuditServiceSettings:
-    return AuditServiceSettings()
+    global _settings
+    if _settings is None:
+        _settings = AuditServiceSettings()
+    return _settings

@@ -1,20 +1,16 @@
-from typing import Annotated
-
-from fastapi import Depends, Request
+from typing import AsyncGenerator
+from fastapi import Request
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from faccp_common.database import get_db
-from faccp_common.kafka_client import EventProducer
-
+from faccp_common.database import get_db_session
 from app.services.whitelabel_service import WhiteLabelService
 
 
-async def get_event_producer(request: Request) -> EventProducer | None:
-    return getattr(request.app.state, "event_producer", None)
+async def get_db(request: Request) -> AsyncGenerator[AsyncSession, None]:
+    async for session in get_db_session(request.app.state.db_session_factory):
+        yield session
 
 
-def get_whitelabel_service(
-    db: Annotated[AsyncSession, Depends(get_db)],
-    producer: Annotated[EventProducer | None, Depends(get_event_producer)] = None,
-) -> WhiteLabelService:
-    return WhiteLabelService(db=db, producer=producer)
+async def get_whitelabel_service(request: Request) -> AsyncGenerator[WhiteLabelService, None]:
+    async for session in get_db_session(request.app.state.db_session_factory):
+        producer = getattr(request.app.state, "producer", None)
+        yield WhiteLabelService(db=session, producer=producer)

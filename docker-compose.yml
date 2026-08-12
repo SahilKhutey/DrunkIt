@@ -1,77 +1,65 @@
-version: '3.8'
+name: faccp
 
-networks:
-  faccp-network:
-    driver: bridge
-
-volumes:
-  postgres_data:
-  redis_data:
-  minio_data:
-  kafka_data:
-  zookeeper_data:
-  prometheus_data:
-  grafana_data:
+x-postgres-base: &postgres-base
+  image: postgres:16-alpine
+  environment:
+    POSTGRES_USER: ${POSTGRES_USER:-faccp}
+    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-faccp_dev_password_change_in_production}
+    POSTGRES_DB: ${POSTGRES_DB:-faccp}
+  volumes:
+    - postgres_data:/var/lib/postgresql/data
+    - ./infrastructure/postgres/init-databases.sh:/docker-entrypoint-initdb.d/01-init-databases.sh:ro
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+    interval: 10s
+    timeout: 5s
+    retries: 5
+  restart: unless-stopped
 
 services:
-  # =========================================================================
-  # Infrastructure Stack
-  # =========================================================================
-
+  # ==========================================
+  # DATABASES
+  # ==========================================
   postgres:
-    image: postgres:16-alpine
+    <<: *postgres-base
     container_name: faccp-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: faccp_admin
-      POSTGRES_PASSWORD: faccp_password
-      POSTGRES_DB: faccp_identity
     ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./infrastructure/postgres/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh
-    networks:
-      - faccp-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U faccp_admin"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      - "${POSTGRES_PORT:-5432}:5432"
 
+  # ==========================================
+  # CACHE
+  # ==========================================
   redis:
     image: redis:7-alpine
     container_name: faccp-redis
-    restart: unless-stopped
     command: redis-server --appendonly yes
-    ports:
-      - "6379:6379"
     volumes:
       - redis_data:/data
-    networks:
-      - faccp-network
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
+  # ==========================================
+  # EVENT BUS
+  # ==========================================
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
     container_name: faccp-zookeeper
-    restart: unless-stopped
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
-    networks:
-      - faccp-network
     volumes:
       - zookeeper_data:/var/lib/zookeeper/data
+    restart: unless-stopped
 
   kafka:
     image: confluentinc/cp-kafka:7.5.0
     container_name: faccp-kafka
-    restart: unless-stopped
     depends_on:
       - zookeeper
     ports:
@@ -80,25 +68,25 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
-    networks:
-      - faccp-network
+      KAFKA_NUM_PARTITIONS: 3
     volumes:
       - kafka_data:/var/lib/kafka/data
     healthcheck:
       test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
-      interval: 10s
+      interval: 15s
       timeout: 10s
-      retries: 5
+      retries: 10
+    restart: unless-stopped
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     container_name: faccp-kafka-ui
-    restart: unless-stopped
     depends_on:
       - kafka
     ports:
@@ -106,347 +94,114 @@ services:
     environment:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
-    networks:
-      - faccp-network
-
-  minio:
-    image: minio/minio:RELEASE.2024-03-03T17-50-39Z
-    container_name: faccp-minio
     restart: unless-stopped
+
+  # ==========================================
+  # OBJECT STORAGE
+  # ==========================================
+  minio:
+    image: minio/minio:latest
+    container_name: faccp-minio
     command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-faccp}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-faccp_dev_password}
+    volumes:
+      - minio_data:/data
     ports:
       - "9000:9000"
       - "9001:9001"
-    environment:
-      MINIO_ROOT_USER: faccp
-      MINIO_ROOT_PASSWORD: faccp_dev_password
-    volumes:
-      - minio_data:/data
-    networks:
-      - faccp-network
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
 
+  minio-init:
+    image: minio/mc:latest
+    container_name: faccp-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD};
+      mc mb -p local/faccp-documents || true;
+      mc anonymous set download local/faccp-documents || true;
+      exit 0;
+      "
+    restart: "no"
+
+  # ==========================================
+  # EMAIL (Development)
+  # ==========================================
   mailhog:
     image: mailhog/mailhog:latest
     container_name: faccp-mailhog
-    restart: unless-stopped
     ports:
       - "1025:1025"
       - "8025:8025"
-    networks:
-      - faccp-network
+    restart: unless-stopped
 
+  # ==========================================
+  # OBSERVABILITY
+  # ==========================================
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.96.0
     container_name: faccp-otel-collector
-    restart: unless-stopped
-    command: ["--config=/etc/otel-collector-config.yaml"]
+    command: ["--config=/etc/otelcol/config.yaml"]
     volumes:
-      - ./infrastructure/otel/otel-collector-config.yaml:/etc/otel-collector-config.yaml
+      - ./infrastructure/monitoring/otel-collector.yaml:/etc/otelcol/config.yaml:ro
     ports:
-      - "4317:4317" # OTLP gRPC
-      - "4318:4318" # OTLP HTTP
-      - "8888:8888" # Metrics
-    networks:
-      - faccp-network
+      - "4317:4317"
+      - "4318:4318"
+    restart: unless-stopped
 
   prometheus:
     image: prom/prometheus:v2.51.0
     container_name: faccp-prometheus
-    restart: unless-stopped
     volumes:
-      - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./infrastructure/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.enable-lifecycle"
     ports:
       - "9090:9090"
-    networks:
-      - faccp-network
+    restart: unless-stopped
 
   grafana:
     image: grafana/grafana:10.4.0
     container_name: faccp-grafana
-    restart: unless-stopped
-    ports:
-      - "3010:3000"
+    depends_on:
+      - prometheus
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
     volumes:
       - grafana_data:/var/lib/grafana
-    environment:
-      GF_SECURITY_ADMIN_PASSWORD: admin
-    networks:
-      - faccp-network
+      - ./infrastructure/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
 
   jaeger:
     image: jaegertracing/all-in-one:1.55
     container_name: faccp-jaeger
-    restart: unless-stopped
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
     ports:
       - "16686:16686"
       - "14250:14250"
-    networks:
-      - faccp-network
-
-  # =========================================================================
-  # Application Services (FastAPI Microservices)
-  # =========================================================================
-
-  identity-service:
-    build:
-      context: .
-      dockerfile: services/identity-service/Dockerfile
-    container_name: faccp-identity-service
     restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-    ports:
-      - "8001:8001"
-    environment:
-      SERVICE_NAME: identity-service
-      PORT: 8001
-      DATABASE_URL: postgresql+asyncpg://faccp_admin:faccp_password@postgres:5432/faccp_identity
-      REDIS_URL: redis://redis:6379/0
-      KAFKA_BROKERS: kafka:29092
-    networks:
-      - faccp-network
 
-  compliance-service:
-    build:
-      context: .
-      dockerfile: services/compliance-service/Dockerfile
-    container_name: faccp-compliance-service
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    ports:
-      - "8002:8002"
-    environment:
-      SERVICE_NAME: compliance-service
-      PORT: 8002
-      DATABASE_URL: postgresql+asyncpg://faccp_admin:faccp_password@postgres:5432/faccp_compliance
-      REDIS_URL: redis://redis:6379/1
-    networks:
-      - faccp-network
-
-  retailer-service:
-    build:
-      context: .
-      dockerfile: services/retailer-service/Dockerfile
-    container_name: faccp-retailer-service
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    ports:
-      - "8003:8003"
-    environment:
-      SERVICE_NAME: retailer-service
-      PORT: 8003
-      DATABASE_URL: postgresql+asyncpg://faccp_admin:faccp_password@postgres:5432/faccp_retailer
-      REDIS_URL: redis://redis:6379/2
-    networks:
-      - faccp-network
-
-  catalog-service:
-    build:
-      context: .
-      dockerfile: services/catalog-service/Dockerfile
-    container_name: faccp-catalog-service
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-    ports:
-      - "8004:8004"
-    environment:
-      SERVICE_NAME: catalog-service
-      PORT: 8004
-      DATABASE_URL: postgresql+asyncpg://faccp_admin:faccp_password@postgres:5432/faccp_catalog
-    networks:
-      - faccp-network
-
-  inventory-service:
-    build:
-      context: .
-      dockerfile: services/inventory-service/Dockerfile
-    container_name: faccp-inventory-service
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    ports:
-      - "8005:8005"
-    environment:
-      SERVICE_NAME: inventory-service
-      PORT: 8005
-      DATABASE_URL: postgresql+asyncpg://faccp_admin:faccp_password@postgres:5432/faccp_inventory
-      REDIS_URL: redis://redis:6379/3
-    networks:
-      - faccp-network
-
-  order-service:
-    build:
-      context: .
-      dockerfile: services/order-service/Dockerfile
-    container_name: faccp-order-service
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-    ports:
-      - "8006:8006"
-    environment:
-      SERVICE_NAME: order-service
-      PORT: 8006
-      DATABASE_URL: postgresql+asyncpg://faccp_admin:faccp_password@postgres:5432/faccp_order
-      KAFKA_BROKERS: kafka:29092
-    networks:
-      - faccp-network
-
-  audit-service:
-    build:
-      context: .
-      dockerfile: services/audit-service/Dockerfile
-    container_name: faccp-audit-service
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-    ports:
-      - "8007:8007"
-    environment:
-      SERVICE_NAME: audit-service
-      PORT: 8007
-      DATABASE_URL: postgresql+asyncpg://faccp_admin:faccp_password@postgres:5432/faccp_audit
-    networks:
-      - faccp-network
-
-  policy-service:
-    build:
-      context: .
-      dockerfile: services/policy-service/Dockerfile
-    container_name: faccp-policy-service
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-    ports:
-      - "8008:8008"
-    environment:
-      SERVICE_NAME: policy-service
-      PORT: 8008
-      DATABASE_URL: postgresql+asyncpg://faccp_admin:faccp_password@postgres:5432/faccp_compliance
-    networks:
-      - faccp-network
-
-  payment-service:
-    build:
-      context: .
-      dockerfile: services/payment-service/Dockerfile
-    container_name: faccp-payment-service
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-    ports:
-      - "8013:8013"
-    environment:
-      SERVICE_NAME: payment-service
-      PORT: 8013
-      DATABASE_URL: postgresql+asyncpg://faccp_admin:faccp_password@postgres:5432/faccp_payment
-      KAFKA_BROKERS: kafka:29092
-    networks:
-      - faccp-network
-
-  pricing-service:
-    build:
-      context: .
-      dockerfile: services/pricing-service/Dockerfile
-    container_name: faccp-pricing-service
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-    ports:
-      - "8014:8014"
-    environment:
-      SERVICE_NAME: pricing-service
-      PORT: 8014
-      DATABASE_URL: postgresql+asyncpg://faccp_admin:faccp_password@postgres:5432/faccp_pricing
-    networks:
-      - faccp-network
-
-  analytics-service:
-    build:
-      context: .
-      dockerfile: services/analytics-service/Dockerfile
-    container_name: faccp-analytics-service
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-    ports:
-      - "8015:8015"
-    environment:
-      SERVICE_NAME: analytics-service
-      PORT: 8015
-      DATABASE_URL: postgresql+asyncpg://faccp_admin:faccp_password@postgres:5432/faccp_analytics
-      KAFKA_BROKERS: kafka:29092
-    networks:
-      - faccp-network
-
-  realtime-service:
-    build:
-      context: .
-      dockerfile: services/realtime-service/Dockerfile
-    container_name: faccp-realtime-service
-    restart: unless-stopped
-    depends_on:
-      redis:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
-    ports:
-      - "8016:8016"
-    environment:
-      SERVICE_NAME: realtime-service
-      PORT: 8016
-      REDIS_URL: redis://redis:6379/15
-      KAFKA_BROKERS: kafka:29092
-    networks:
-      - faccp-network
-
-  recommendation-service:
-    build:
-      context: .
-      dockerfile: services/recommendation-service/Dockerfile
-    container_name: faccp-recommendation-service
-    restart: unless-stopped
-    depends_on:
-      redis:
-        condition: service_healthy
-    ports:
-      - "8017:8017"
-    environment:
-      SERVICE_NAME: recommendation-service
-      PORT: 8017
-      REDIS_URL: redis://redis:6379/16
-    networks:
-      - faccp-network
-
-
+volumes:
+  postgres_data:
+  redis_data:
+  zookeeper_data:
+  kafka_data:
+  minio_data:
+  prometheus_data:
+  grafana_data:

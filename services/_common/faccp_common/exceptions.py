@@ -51,6 +51,22 @@ class TokenExpiredError(UnauthorizedError):
     default_message = "Token has expired."
 
 
+class InvalidTokenError(UnauthorizedError):
+    error_code = "INVALID_TOKEN"
+    default_message = "Invalid token."
+
+
+class InvalidAuthHeaderError(UnauthorizedError):
+    error_code = "INVALID_AUTH_HEADER"
+    default_message = "Invalid authorization header."
+
+
+class MissingAuthError(UnauthorizedError):
+    error_code = "MISSING_AUTH"
+    default_message = "Missing authorization header."
+
+
+
 class ForbiddenError(AppError):
     status_code = 403
     error_code = "FORBIDDEN"

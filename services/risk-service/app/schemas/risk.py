@@ -1,78 +1,40 @@
+"""Risk service API schemas."""
+
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+
 from pydantic import BaseModel, Field
 
 
-class EvaluateRequest(BaseModel):
-    subject_type: str  # consumer|transaction|order|retailer
-    subject_id: str
-    context: dict[str, Any] = Field(default_factory=dict)
-    history: list[dict[str, Any]] | None = None
+class RiskEvaluationRequest(BaseModel):
+    entity_type: str = Field(pattern="^(ORDER|CONSUMER|RETAILER)$")
+    entity_id: str
+    amount_inr: float = 0.0
+    velocity_count_1h: int = 0
+    is_new_device: bool = False
 
 
-class EvaluateResponse(BaseModel):
-    subject_type: str
-    subject_id: str
-    risk_score: int
-    risk_level: str
-    signals: list[dict[str, Any]] = Field(default_factory=list)
-
-
-class EnhancedEvaluateRequest(BaseModel):
-    subject_type: str  # consumer|transaction|order|retailer
-    subject_id: str
-    context: dict[str, Any] = Field(default_factory=dict)
-    history: list[dict[str, Any]] | None = None
-
-
-class EnhancedEvaluateResponse(BaseModel):
-    subject_type: str
-    subject_id: str
-    final_score: int
-    level: str
-    breakdown: dict[str, float]
-    is_anomaly: bool
-    top_contributors: list[dict[str, Any]]
-    ato_signals: list[str]
-    profile_id: str
-    evaluated_at: datetime
-    explanation: str
-
-
-class RiskEvaluateRequest(BaseModel):
-    subject_id: str
-    subject_type: str = "ORDER"
-    amount: float = 0.0
-    device_fingerprint: str | None = None
-    ip_address: str | None = None
-    historical_order_count: int = 0
-
-
-class RiskEvaluateResponse(BaseModel):
+class RiskEvaluationResponse(BaseModel):
     id: str
-    subject_id: str
-    subject_type: str
+    evaluation_code: str
+    entity_type: str
+    entity_id: str
     risk_score: float
-    risk_level: str
-    recommendation: str
-    risk_factors: dict[str, Any]
+    decision: str
+    reason_codes: list[str]
+    created_at: datetime
 
 
-class FraudCaseResponse(BaseModel):
+class FraudRuleCreate(BaseModel):
+    rule_name: str = Field(min_length=3, max_length=64)
+    description: str = Field(min_length=3, max_length=255)
+    risk_score_impact: float = Field(ge=0.0, le=1.0)
+
+
+class FraudRuleResponse(BaseModel):
     id: str
-    case_number: str
-    subject_type: str
-    subject_id: str
-    severity: str
-    risk_score: int
-    title: str
-
-
-class ProfileResponse(BaseModel):
-    id: str
-    subject_type: str
-    subject_id: str
-    risk_score: int
-    risk_level: str
+    rule_name: str
+    description: str
+    risk_score_impact: float
+    is_active: bool

@@ -1,0 +1,24 @@
+# .pre-commit-config.yaml - System Constitution Local Enforcement Hooks
+repos:
+  - repo: local
+    hooks:
+      - id: constitution-check
+        name: System Constitution Compliance Audit
+        entry: bash scripts/constitution/check-all.sh
+        language: script
+        pass_filenames: false
+        always_run: true
+
+      - id: check-no-secrets
+        name: Scan for Hardcoded Secrets
+        entry: bash scripts/ci/check-secrets.sh
+        language: script
+        pass_filenames: false
+        always_run: true
+
+      - id: check-no-hardcoded-policies
+        name: Verify Compliance Isolation
+        entry: bash scripts/ci/check-no-hardcoded-policies.sh
+        language: script
+        pass_filenames: false
+        always_run: true

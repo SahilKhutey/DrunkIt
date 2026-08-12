@@ -1,93 +1,109 @@
-"""Seed default jurisdictions and baseline policies."""
+"""Seed state-level alcohol compliance policies and dry days."""
 
 from __future__ import annotations
 
 import asyncio
-from datetime import date, timedelta
-
-from faccp_common.database import init_engine, session_scope
+from datetime import date, datetime, time, timezone
+from sqlalchemy import select
 
 from app.config import get_settings
-from app.services.policy_service import PolicyService
+from app.db.base import Base
+from app.db.models import DryDayCalendar, Policy
+from faccp_common.database import init_engine, session_scope
+
+STATE_POLICIES = [
+    {
+        "code": "POL_KA_ALCOHOL_2026",
+        "title": "Karnataka Excise Alcohol Policy 2026",
+        "jurisdiction": "IN-KA",
+        "min_purchasing_age": 21,
+        "max_volume_per_transaction_ml": 4500,
+        "sales_start_time": time(10, 0),
+        "sales_end_time": time(22, 30),
+    },
+    {
+        "code": "POL_MH_ALCOHOL_2026",
+        "title": "Maharashtra Prohibition & Excise Policy 2026",
+        "jurisdiction": "IN-MH",
+        "min_purchasing_age": 25,
+        "max_volume_per_transaction_ml": 3000,
+        "sales_start_time": time(10, 0),
+        "sales_end_time": time(22, 0),
+    },
+    {
+        "code": "POL_DL_ALCOHOL_2026",
+        "title": "Delhi Excise Alcohol Policy 2026",
+        "jurisdiction": "IN-DL",
+        "min_purchasing_age": 21,
+        "max_volume_per_transaction_ml": 9000,
+        "sales_start_time": time(10, 0),
+        "sales_end_time": time(22, 0),
+    },
+    {
+        "code": "POL_TG_ALCOHOL_2026",
+        "title": "Telangana Prohibition & Excise Policy 2026",
+        "jurisdiction": "IN-TG",
+        "min_purchasing_age": 21,
+        "max_volume_per_transaction_ml": 4500,
+        "sales_start_time": time(10, 0),
+        "sales_end_time": time(23, 0),
+    },
+]
+
+NATIONAL_DRY_DAYS = [
+    {"jurisdiction": "IN-KA", "dry_date": date(2026, 1, 26), "occasion": "Republic Day"},
+    {"jurisdiction": "IN-KA", "dry_date": date(2026, 8, 15), "occasion": "Independence Day"},
+    {"jurisdiction": "IN-KA", "dry_date": date(2026, 10, 2), "occasion": "Gandhi Jayanti"},
+    {"jurisdiction": "IN-MH", "dry_date": date(2026, 1, 26), "occasion": "Republic Day"},
+    {"jurisdiction": "IN-MH", "dry_date": date(2026, 8, 15), "occasion": "Independence Day"},
+    {"jurisdiction": "IN-MH", "dry_date": date(2026, 10, 2), "occasion": "Gandhi Jayanti"},
+    {"jurisdiction": "IN-DL", "dry_date": date(2026, 1, 26), "occasion": "Republic Day"},
+    {"jurisdiction": "IN-DL", "dry_date": date(2026, 8, 15), "occasion": "Independence Day"},
+    {"jurisdiction": "IN-DL", "dry_date": date(2026, 10, 2), "occasion": "Gandhi Jayanti"},
+]
 
 
 async def seed() -> None:
     settings = get_settings()
     init_engine(settings.database_url)
-
     async with session_scope() as session:
-        service = PolicyService(db=session)
-
-        # Default country
-        india = await service.create_jurisdiction(
-            code="IN", name="India", level="country", country_code="IN",
-        )
-
-        states = [
-            ("IN-CG", "Chhattisgarh", "Chhattisgarh"),
-            ("IN-MH", "Maharashtra", "Maharashtra"),
-            ("IN-KA", "Karnataka", "Karnataka"),
-            ("IN-DL", "Delhi", "Delhi"),
-            ("IN-TN", "Tamil Nadu", "Tamil Nadu"),
-            ("IN-GA", "Goa", "Goa"),
-        ]
-        state_jurisdictions = []
-        for code, name, _ in states:
-            j = await service.create_jurisdiction(
-                code=code, name=name, level="state",
-                country_code="IN", parent_code="IN",
+        for pol in STATE_POLICIES:
+            existing = await session.execute(
+                select(Policy).where(Policy.code == pol["code"])
             )
-            state_jurisdictions.append((code, j))
+            if existing.scalar_one_or_none() is None:
+                p = Policy(
+                    code=pol["code"],
+                    title=pol["title"],
+                    jurisdiction=pol["jurisdiction"],
+                    category="alcohol",
+                    effective_from=datetime.now(timezone.utc),
+                    min_purchasing_age=pol["min_purchasing_age"],
+                    max_volume_per_transaction_ml=pol["max_volume_per_transaction_ml"],
+                    sales_start_time=pol["sales_start_time"],
+                    sales_end_time=pol["sales_end_time"],
+                )
+                session.add(p)
+                print(f"  Policy seeded: {pol['code']} ({pol['jurisdiction']})")
 
-        for code, _ in state_jurisdictions:
-            await service.create_policy(
-                jurisdiction_code=code, policy_type="age",
-                version="1.0", name=f"Minimum age — {code}",
-                rules={"min_age": 21, "verification_required": True},
-                effective_from=date.today(),
-                effective_until=None,
-                approved_by="system_seed",
+        for dry in NATIONAL_DRY_DAYS:
+            existing = await session.execute(
+                select(DryDayCalendar).where(
+                    DryDayCalendar.jurisdiction == dry["jurisdiction"],
+                    DryDayCalendar.dry_date == dry["dry_date"],
+                )
             )
-            await service.create_policy(
-                jurisdiction_code=code, policy_type="hours",
-                version="1.0", name=f"Sales hours — {code}",
-                rules={
-                    "start": "10:00", "end": "22:00",
-                    "days": [0, 1, 2, 3, 4, 5, 6],
-                },
-                effective_from=date.today(),
-                effective_until=None,
-                approved_by="system_seed",
-            )
-            await service.create_policy(
-                jurisdiction_code=code, policy_type="product",
-                version="1.0", name=f"Product authorization — {code}",
-                rules={
-                    "allowed_categories": ["beer", "wine", "spirit", "rtd"],
-                    "quantity_limit_per_order": 12,
-                },
-                effective_from=date.today(),
-                effective_until=None,
-                approved_by="system_seed",
-            )
-            await service.create_policy(
-                jurisdiction_code=code, policy_type="delivery",
-                version="1.0", name=f"Delivery zones — {code}",
-                rules={
-                    "permitted_zones": ["zone_a", "zone_b", "zone_c"],
-                    "delivery_hours": {"start": "10:00", "end": "21:00"},
-                },
-                effective_from=date.today(),
-                effective_until=None,
-                approved_by="system_seed",
-            )
+            if existing.scalar_one_or_none() is None:
+                d = DryDayCalendar(
+                    jurisdiction=dry["jurisdiction"],
+                    dry_date=dry["dry_date"],
+                    occasion=dry["occasion"],
+                    is_full_day=True,
+                )
+                session.add(d)
+                print(f"  Dry day seeded: {dry['jurisdiction']} on {dry['dry_date']} ({dry['occasion']})")
 
-        await service.add_dry_day(
-            jurisdiction_code="IN-CG", day=date.today() + timedelta(days=15),
-            reason="Republic Day", approved_by="system_seed",
-        )
-
-    print(f"[OK] Seeded {len(states)} states with baseline policies.")
+    print("\n[OK] Seeded alcohol compliance policies and dry-day calendar.")
 
 
 if __name__ == "__main__":

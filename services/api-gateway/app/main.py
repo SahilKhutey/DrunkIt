@@ -29,7 +29,11 @@ SERVICE_ROUTES = {
     "/api/v1/analytics": settings.analytics_service_url,
     "/api/v1/realtime": settings.realtime_service_url,
     "/api/v1/recommendations": settings.recommendation_service_url,
+    "/api/v1/whitelabel": settings.whitelabel_service_url,
+    "/api/v1/reports": settings.reporting_service_url,
+    "/api/v1/support": settings.support_service_url,
 }
+
 
 
 client: httpx.AsyncClient | None = None

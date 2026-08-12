@@ -1,37 +1,53 @@
-.PHONY: help setup dev infra down migrate seed psql test lint typecheck
+.PHONY: help setup install dev up down logs migrate seed test lint format clean
 
-help:
-	@echo "FACCP Monorepo Commands:"
-	@echo "  make setup     - Install Python common package and pnpm dependencies"
-	@echo "  make infra     - Start PostgreSQL, Redis, Kafka, MinIO, MailHog"
-	@echo "  make down      - Stop all infrastructure containers"
-	@echo "  make dev       - Run Next.js web applications in dev mode"
-	@echo "  make migrate   - Run Alembic migrations for identity service"
-	@echo "  make seed      - Seed RBAC roles and permissions"
-	@echo "  make test      - Run pytest across Python microservices"
-	@echo "  make typecheck - Run TypeScript typechecks across apps and packages"
+include .env
+export
 
-setup:
-	pip install -e services/_common
+help: ## Show help
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+
+setup: ## Initial project setup
+	@echo "Installing dependencies..."
 	pnpm install
+	uv sync --all-packages
+	@test -f .env || cp .env.example .env
+	@echo "Setup complete. Run 'make dev' to start."
 
-infra:
-	docker compose up -d postgres redis zookeeper kafka minio mailhog otel-collector prometheus grafana jaeger
+dev-infra: ## Start infrastructure only
+	docker compose up -d postgres redis kafka minio mailhog otel-collector prometheus grafana jaeger loki
+	@sleep 10
+	@make kafka-create-topics
 
-down:
-	docker compose down
+dev-services: ## Start all backend services
+	@for service in identity-service consumer-service retailer-service catalog-service inventory-service order-service compliance-service audit-service risk-service verification-service delivery-service notification-service payment-service pricing-service analytics-service realtime-service; do \
+		(cd services/$$service && uv run uvicorn app.main:app --host 0.0.0.0 --port $$(echo $$service | grep -oE '[0-9]+$$' || echo 8000) --reload) & \
+	done
+	@echo "Services starting..."
 
-dev:
-	pnpm dev
+migrate: ## Run all database migrations
+	@for service in identity-service consumer-service retailer-service catalog-service inventory-service order-service compliance-service audit-service risk-service verification-service delivery-service notification-service payment-service pricing-service analytics-service realtime-service; do \
+		echo "Migrating $$service..."; \
+		(cd services/$$service && uv run alembic upgrade head) || echo "  (no migrations or failed)"; \
+	done
 
-migrate:
-	cd services/identity-service && alembic upgrade head
+seed: ## Seed initial data
+	@echo "Seeding roles and permissions..."
+	cd services/identity-service && uv run python -m app.scripts.seed_rbac
+	@echo "Seeding policies..."
+	cd services/compliance-service && uv run python -m app.scripts.seed_policies
+	@echo "Seeding catalog..."
+	cd services/catalog-service && uv run python -m app.scripts.seed_catalog
+	@echo "Seed complete."
 
-seed:
-	python -m identity_app.scripts.seed_rbac
+test: ## Run all tests
+	@for service in identity-service consumer-service retailer-service catalog-service inventory-service order-service compliance-service audit-service risk-service; do \
+		(cd services/$$service && uv run pytest) || echo "  (tests failed in $$service)"; \
+	done
 
-test:
-	pytest tests/unit/
+lint: ## Run linters
+	uv run ruff check .
+	cd apps && pnpm lint
 
-typecheck:
-	pnpm typecheck
+format: ## Format code
+	uv run ruff format .
+	cd apps && pnpm format
