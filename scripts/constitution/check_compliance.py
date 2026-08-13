@@ -97,6 +97,7 @@ class ConstitutionChecker:
             ("ConsumerListingEngineSpec", "Phase 32 Consumer Listing Engine Specification Audit", self.check_consumer_listing_engine_spec_step),
             ("DeliveryEngineSpec", "Phase 33 Delivery System & Logistics Engine Architecture Audit", self.check_delivery_engine_spec_step),
             ("DeliveryCoreService", "Phase 34 Development Phase D1 — Delivery Core & State Machine Engine", self.check_delivery_core_service_step),
+            ("DriverManagementService", "Phase 35 Development Phase D2 — Driver Management System", self.check_driver_management_service_step),
         ]
 
         results: list[ConstitutionCheckResult] = []
@@ -186,6 +187,15 @@ class ConstitutionChecker:
         if res["score_pct"] < 100.0:
             return [f"Delivery core service audit failed: {res['score_pct']}% verified."]
         return []
+
+    def check_driver_management_service_step(self) -> list[str]:
+        from scripts.constitution.check_driver_management_service import DriverManagementServiceChecker
+        checker = DriverManagementServiceChecker(root_dir=self.root_dir)
+        res = checker.audit_driver_management_service()
+        if res["score_pct"] < 100.0:
+            return [f"Driver management service audit failed: {res['score_pct']}% verified."]
+        return []
+
 
 
 

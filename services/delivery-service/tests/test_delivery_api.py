@@ -3,11 +3,14 @@ import sys
 from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
-delivery_service_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))
-if delivery_service_path not in sys.path:
-    sys.path.insert(0, delivery_service_path)
+service_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))
+sys.path.insert(0, service_dir)
+for mod in list(sys.modules.keys()):
+    if mod == "app" or mod.startswith("app."):
+        del sys.modules[mod]
 
 from fastapi.testclient import TestClient
+
 
 
 
