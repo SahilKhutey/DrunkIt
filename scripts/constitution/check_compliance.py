@@ -110,6 +110,7 @@ class ConstitutionChecker:
             ("ComplianceTrust", "Phase 45 Development Phase D12 — Compliance & Trust Engine", self.check_compliance_trust_step),
             ("SecurityFraud", "Phase 46 Development Phase D13 — Fraud, Abuse & Security Operations Engine", self.check_security_fraud_step),
             ("ObservabilityMonitoring", "Phase 47 Development Phase D14 — Observability, Monitoring & Reliability Engine", self.check_observability_monitoring_step),
+            ("ResilienceDisaster", "Phase 48 Development Phase D15 — Disaster Recovery, Resilience & Business Continuity Engine", self.check_resilience_disaster_step),
         ]
 
         results: list[ConstitutionCheckResult] = []
@@ -303,6 +304,16 @@ class ConstitutionChecker:
         if res["score_pct"] < 100.0:
             return [f"Observability monitoring audit failed: {res['score_pct']}% verified."]
         return []
+
+    def check_resilience_disaster_step(self) -> list[str]:
+        from scripts.constitution.check_resilience_disaster import ResilienceDisasterChecker
+        checker = ResilienceDisasterChecker(root_dir=self.root_dir)
+        res = checker.audit_resilience_disaster()
+        if res["score_pct"] < 100.0:
+            return [f"Resilience disaster audit failed: {res['score_pct']}% verified."]
+        return []
+
+
 
 
 

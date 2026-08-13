@@ -13,8 +13,8 @@ if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
 from services.security.app.engine.abuse_engine import AccountTakeoverDetector
-from services.security.app.engine.decision_engine import OrderSecurityGate
-from services.security.app.engine.risk_engine import RiskEngine
+from services.security.app.engine.risk_engine import OrderSecurityGate, RiskEngine
+
 from services.security.app.events.consumers import SecurityEventConsumer
 from services.security.app.services.action_service import ActionService
 from services.security.app.services.case_service import CaseService
