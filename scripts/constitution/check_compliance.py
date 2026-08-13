@@ -89,6 +89,7 @@ class ConstitutionChecker:
             ("WhitelabelService", "Phase 12 Whitelabel Service Microservice", self.check_whitelabel_service_step),
             ("SupportAgentService", "Phase 12 AI Support Agent Service Microservice", self.check_support_agent_service_step),
             ("FunctionalModules", "Phase 26 Master 66 Functional Architecture Modules", self.check_functional_modules_step),
+            ("CommunicationArchitecture", "Phase 27 Master Communication System Architecture Audit", self.check_communication_architecture_step),
         ]
 
         results: list[ConstitutionCheckResult] = []
@@ -114,6 +115,15 @@ class ConstitutionChecker:
         if res["score_pct"] < 100.0:
             return [f"Functional modules audit failed: {res['score_pct']}% verified."]
         return []
+
+    def check_communication_architecture_step(self) -> list[str]:
+        from scripts.constitution.check_communication_architecture import CommunicationArchitectureChecker
+        checker = CommunicationArchitectureChecker(root_dir=self.root_dir)
+        res = checker.audit_communication_architecture()
+        if res["score_pct"] < 100.0:
+            return [f"Communication architecture audit failed: {res['score_pct']}% verified."]
+        return []
+
 
     def check_security(self) -> list[str]:
         violations = []
