@@ -100,6 +100,7 @@ class ConstitutionChecker:
             ("DriverManagementService", "Phase 35 Development Phase D2 — Driver Management System", self.check_driver_management_service_step),
             ("DispatchEngineService", "Phase 36 Development Phase D3 — Dispatch Engine", self.check_dispatch_engine_service_step),
             ("FulfilmentService", "Phase 37 Development Phase D4 — Fulfilment + Serviceability Engine", self.check_fulfilment_service_step),
+            ("ProductionInfrastructure", "Phase 38 Development Phase D5 — Production Data & Real-Time Infrastructure", self.check_production_infrastructure_step),
         ]
 
         results: list[ConstitutionCheckResult] = []
@@ -213,6 +214,15 @@ class ConstitutionChecker:
         if res["score_pct"] < 100.0:
             return [f"Fulfilment service audit failed: {res['score_pct']}% verified."]
         return []
+
+    def check_production_infrastructure_step(self) -> list[str]:
+        from scripts.constitution.check_production_infrastructure import ProductionInfrastructureChecker
+        checker = ProductionInfrastructureChecker(root_dir=self.root_dir)
+        res = checker.audit_production_infrastructure()
+        if res["score_pct"] < 100.0:
+            return [f"Production infrastructure audit failed: {res['score_pct']}% verified."]
+        return []
+
 
 
 
