@@ -39,8 +39,12 @@ $PYTHON_CMD scripts/constitution/check_risk_service.py
 $PYTHON_CMD scripts/constitution/check_realtime_service.py
 $PYTHON_CMD scripts/constitution/check_analytics_service.py
 $PYTHON_CMD scripts/constitution/check_recommendation_service.py
+$PYTHON_CMD scripts/constitution/check_gateway_service.py
+$PYTHON_CMD scripts/constitution/check_whitelabel_service.py
+$PYTHON_CMD scripts/constitution/check_support_agent_service.py
 
 echo "✅ Pre-commit & local constitution audit complete."
+
 
 
 

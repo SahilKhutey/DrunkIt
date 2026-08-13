@@ -65,7 +65,17 @@ jobs:
       - name: Check Phase 10 Recommendation Service Microservice
         run: bash scripts/ci/check-recommendation-service.sh
 
+      - name: Check Phase 11 API Gateway Service Microservice
+        run: bash scripts/ci/check-gateway-service.sh
+
+      - name: Check Phase 12 Whitelabel Service Microservice
+        run: bash scripts/ci/check-whitelabel-service.sh
+
+      - name: Check Phase 12 AI Support Agent Service Microservice
+        run: bash scripts/ci/check-support-agent-service.sh
+
       - name: Check Delivery System & Delivery Engine Architecture
+
 
 
 

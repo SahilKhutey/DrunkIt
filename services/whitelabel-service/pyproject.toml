@@ -1,25 +1,23 @@
 [project]
 name = "faccp-whitelabel"
 version = "0.1.0"
-description = "FACCP White-Label & Multi-Tenancy Service"
+description = "FACCP Whitelabel Multi-Tenant Portal Service"
 requires-python = ">=3.11"
 dependencies = [
-    "faccp-common>=0.1.0",
+    "faccp-common",
     "fastapi>=0.111.0",
     "uvicorn[standard]>=0.30.0",
     "pydantic>=2.7.0",
-    "email-validator>=2.1.0",
     "pydantic-settings>=2.2.0",
     "sqlalchemy[asyncio]>=2.0.30",
     "asyncpg>=0.29.0",
+    "alembic>=1.13.0",
+    "redis[hiredis]>=5.0.4",
     "aiokafka>=0.10.0",
-    "prometheus-client>=0.20.0",
     "structlog>=24.1.0",
+    "prometheus-client>=0.20.0",
 ]
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
-
-[tool.hatch.build.targets.wheel]
-packages = ["app"]

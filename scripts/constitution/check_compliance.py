@@ -85,7 +85,11 @@ class ConstitutionChecker:
             ("RealtimeService", "Phase 8 Realtime Service Microservice", self.check_realtime_service_step),
             ("AnalyticsService", "Phase 9 Analytics Service Microservice", self.check_analytics_service_step),
             ("RecommendationService", "Phase 10 Recommendation Service Microservice", self.check_recommendation_service_step),
+            ("GatewayService", "Phase 11 API Gateway Service Microservice", self.check_gateway_service_step),
+            ("WhitelabelService", "Phase 12 Whitelabel Service Microservice", self.check_whitelabel_service_step),
+            ("SupportAgentService", "Phase 12 AI Support Agent Service Microservice", self.check_support_agent_service_step),
         ]
+
 
 
 
@@ -638,6 +642,43 @@ class ConstitutionChecker:
         except Exception as e:
             violations.append(f"Phase 10 Recommendation Service Microservice verification failed to execute: {e}")
         return violations
+
+    def check_gateway_service_step(self) -> list[str]:
+        violations = []
+        try:
+            from scripts.constitution.check_gateway_service import GatewayServiceChecker
+            gw_checker = GatewayServiceChecker(root_dir=self.root_dir)
+            report = gw_checker.check_all()
+            for area, viols in report.items():
+                violations.extend(viols)
+        except Exception as e:
+            violations.append(f"Phase 11 API Gateway Service Microservice verification failed to execute: {e}")
+        return violations
+
+    def check_whitelabel_service_step(self) -> list[str]:
+        violations = []
+        try:
+            from scripts.constitution.check_whitelabel_service import WhitelabelServiceChecker
+            wl_checker = WhitelabelServiceChecker(root_dir=self.root_dir)
+            report = wl_checker.check_all()
+            for area, viols in report.items():
+                violations.extend(viols)
+        except Exception as e:
+            violations.append(f"Phase 12 Whitelabel Service Microservice verification failed to execute: {e}")
+        return violations
+
+    def check_support_agent_service_step(self) -> list[str]:
+        violations = []
+        try:
+            from scripts.constitution.check_support_agent_service import SupportAgentServiceChecker
+            sa_checker = SupportAgentServiceChecker(root_dir=self.root_dir)
+            report = sa_checker.check_all()
+            for area, viols in report.items():
+                violations.extend(viols)
+        except Exception as e:
+            violations.append(f"Phase 12 AI Support Agent Service Microservice verification failed to execute: {e}")
+        return violations
+
 
 
 

@@ -92,9 +92,10 @@ def test_dto_envelope_serialization():
 def test_constitution_checker_execution():
     checker = ConstitutionChecker(root_dir=root_dir)
     report = checker.check_all()
-    assert report["total_articles"] == 43
+    assert report["total_articles"] == 46
     assert report["passed"] > 0
     assert "compliance_score_pct" in report
+
 
 
 

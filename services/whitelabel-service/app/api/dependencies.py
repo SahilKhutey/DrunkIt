@@ -1,16 +1,23 @@
-from typing import AsyncGenerator
-from fastapi import Request
+"""FastAPI dependencies for whitelabel service."""
+
+from __future__ import annotations
+
+from collections.abc import AsyncGenerator
+from typing import Annotated
+
+from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from faccp_common.database import get_db_session
-from app.services.whitelabel_service import WhiteLabelService
+
+from faccp_common.database import get_db
+
+from app.services.whitelabel_service import WhitelabelService
 
 
-async def get_db(request: Request) -> AsyncGenerator[AsyncSession, None]:
-    async for session in get_db_session(request.app.state.db_session_factory):
-        yield session
+def get_db_session() -> AsyncGenerator[AsyncSession, None]:
+    return get_db()
 
 
-async def get_whitelabel_service(request: Request) -> AsyncGenerator[WhiteLabelService, None]:
-    async for session in get_db_session(request.app.state.db_session_factory):
-        producer = getattr(request.app.state, "producer", None)
-        yield WhiteLabelService(db=session, producer=producer)
+def get_whitelabel_service(
+    db: Annotated[AsyncSession, Depends(get_db_session)],
+) -> WhitelabelService:
+    return WhitelabelService(db=db)

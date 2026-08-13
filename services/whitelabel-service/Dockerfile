@@ -1,14 +1,11 @@
 FROM python:3.11-slim
-
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 WORKDIR /app
 RUN pip install uv && apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
-
-COPY services/whitelabel-service/pyproject.toml ./
-COPY services/_common /tmp/_common
+COPY pyproject.toml ./
+COPY ../_common/pyproject.toml /tmp/_common/pyproject.toml
 RUN uv pip install --system /tmp/_common -e .
-
-COPY services/whitelabel-service/app ./app
-HEALTHCHECK --interval=30s --timeout=10s CMD curl -f http://localhost:8018/health || exit 1
-EXPOSE 8018
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8018"]
+COPY . .
+HEALTHCHECK --interval=30s --timeout=10s CMD curl -f http://localhost:8015/health || exit 1
+EXPOSE 8015
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8015"]

@@ -1,15 +1,21 @@
-from functools import lru_cache
+"""Support agent service configuration."""
+
+from __future__ import annotations
+
 from faccp_common.config import BaseServiceSettings
 
 
-class SupportAgentSettings(BaseServiceSettings):
+class SupportAgentServiceSettings(BaseServiceSettings):
     service_name: str = "faccp-support-agent"
-    port: int = 8020
-    database_url: str = "postgresql+asyncpg://faccp_admin:faccp_password@localhost:5432/faccp_support"
-    consumer_service_url: str = "http://localhost:8002"
-    openai_api_key: str = ""
+    port: int = 8016
+    database_url: str = "postgresql+asyncpg://faccp:faccp_dev_password_change_in_production@localhost:5432/faccp_support"
 
 
-@lru_cache(maxsize=1)
-def get_settings() -> SupportAgentSettings:
-    return SupportAgentSettings()
+_settings: SupportAgentServiceSettings | None = None
+
+
+def get_settings() -> SupportAgentServiceSettings:
+    global _settings
+    if _settings is None:
+        _settings = SupportAgentServiceSettings()
+    return _settings

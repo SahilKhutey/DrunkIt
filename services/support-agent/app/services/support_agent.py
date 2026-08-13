@@ -215,3 +215,21 @@ class SupportAgent:
         await self.db.commit()
         await self.db.refresh(msg)
         return msg
+
+    async def create_ticket(
+        self, ticket_number: str, subject: str, description: str, priority: str = "NORMAL"
+    ) -> SupportTicket:
+        ticket = SupportTicket(
+            id=str(uuid.uuid4()),
+            ticket_number=ticket_number,
+            subject=subject,
+            description=description,
+            status="OPEN",
+            priority=priority,
+            source="MANUAL",
+        )
+        self.db.add(ticket)
+        await self.db.commit()
+        await self.db.refresh(ticket)
+        return ticket
+

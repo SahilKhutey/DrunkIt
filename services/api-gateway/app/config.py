@@ -1,36 +1,36 @@
-from functools import lru_cache
+"""API Gateway service configuration."""
+
+from __future__ import annotations
+
 from faccp_common.config import BaseServiceSettings
 
 
-class GatewaySettings(BaseServiceSettings):
+class GatewayServiceSettings(BaseServiceSettings):
     service_name: str = "faccp-gateway"
     port: int = 8000
-
-    identity_service_url: str = "http://localhost:8001"
-    consumer_service_url: str = "http://localhost:8002"
-    retailer_service_url: str = "http://localhost:8003"
-    catalog_service_url: str = "http://localhost:8004"
-    inventory_service_url: str = "http://localhost:8005"
-    order_service_url: str = "http://localhost:8006"
-    compliance_service_url: str = "http://localhost:8007"
-    audit_service_url: str = "http://localhost:8008"
-    risk_service_url: str = "http://localhost:8009"
-    verification_service_url: str = "http://localhost:8010"
-    delivery_service_url: str = "http://localhost:8011"
-    notification_service_url: str = "http://localhost:8012"
-    payment_service_url: str = "http://localhost:8013"
-    pricing_service_url: str = "http://localhost:8014"
-    analytics_service_url: str = "http://localhost:8015"
-    realtime_service_url: str = "http://localhost:8016"
-    recommendation_service_url: str = "http://localhost:8017"
-    whitelabel_service_url: str = "http://localhost:8018"
-    reporting_service_url: str = "http://localhost:8019"
-    support_service_url: str = "http://localhost:8020"
+    services_map: dict[str, str] = {
+        "identity": "http://localhost:8001",
+        "consumer": "http://localhost:8002",
+        "retailer": "http://localhost:8003",
+        "catalog": "http://localhost:8004",
+        "inventory": "http://localhost:8005",
+        "order": "http://localhost:8006",
+        "compliance": "http://localhost:8007",
+        "payment": "http://localhost:8008",
+        "delivery": "http://localhost:8009",
+        "audit": "http://localhost:8010",
+        "risk": "http://localhost:8011",
+        "realtime": "http://localhost:8012",
+        "analytics": "http://localhost:8013",
+        "recommendation": "http://localhost:8014",
+    }
 
 
+_settings: GatewayServiceSettings | None = None
 
 
-@lru_cache(maxsize=1)
-def get_settings() -> GatewaySettings:
-    return GatewaySettings()
-
+def get_settings() -> GatewayServiceSettings:
+    global _settings
+    if _settings is None:
+        _settings = GatewayServiceSettings()
+    return _settings
