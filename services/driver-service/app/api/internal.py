@@ -1,4 +1,8 @@
-from fastapi import APIRouter, Depends
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+)
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -6,6 +10,10 @@ from app.db.session import get_session
 
 from app.repositories.driver import (
     DriverRepository,
+)
+
+from app.schemas.driver import (
+    DriverReservationRequest,
 )
 
 
@@ -40,4 +48,39 @@ async def available_drivers(
             }
             for driver in drivers
         ]
+    }
+
+
+@router.post(
+    "/{driver_id}/reserve"
+)
+async def reserve_driver(
+    driver_id: str,
+    request: DriverReservationRequest,
+    session: AsyncSession = Depends(
+        get_session
+    ),
+):
+
+    repository = DriverRepository(
+        session
+    )
+
+    success = await repository.reserve_driver(
+        driver_id
+    )
+
+    if not success:
+
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Driver is no longer available"
+            ),
+        )
+
+    return {
+        "driver_id": driver_id,
+        "delivery_id": request.delivery_id,
+        "status": "RESERVED",
     }

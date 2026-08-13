@@ -73,3 +73,11 @@ class DriverLocationUpdate(BaseModel):
         default=None,
         ge=0,
     )
+
+
+class DriverReservationRequest(BaseModel):
+
+    delivery_id: str = Field(
+        min_length=1
+    )
+

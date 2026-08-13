@@ -1,5 +1,6 @@
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
+
 
 from app.domain.driver.enums import (
     DriverAccountStatus,
@@ -69,3 +70,42 @@ class DriverRepository:
         )
 
         return list(result.scalars().all())
+
+    async def reserve_driver(
+        self,
+        driver_id: str,
+    ) -> bool:
+
+        result = await self.session.execute(
+            update(Driver)
+            .where(
+                Driver.id == driver_id,
+                Driver.account_status == DriverAccountStatus.ACTIVE,
+                Driver.verification_status == VerificationStatus.VERIFIED,
+                Driver.operational_status == DriverOperationalStatus.AVAILABLE,
+            )
+            .values(operational_status=DriverOperationalStatus.RESERVED)
+        )
+
+        await self.session.commit()
+
+        return result.rowcount == 1
+
+    async def release_driver(
+        self,
+        driver_id: str,
+    ) -> bool:
+
+        result = await self.session.execute(
+            update(Driver)
+            .where(
+                Driver.id == driver_id,
+                Driver.operational_status == DriverOperationalStatus.RESERVED,
+            )
+            .values(operational_status=DriverOperationalStatus.AVAILABLE)
+        )
+
+        await self.session.commit()
+
+        return result.rowcount == 1
+
