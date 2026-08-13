@@ -108,6 +108,7 @@ class ConstitutionChecker:
             ("PaymentFinancial", "Phase 43 Development Phase D10 — Payment + Financial Transaction Engine", self.check_payment_financial_step),
             ("DeliveryLastmile", "Phase 44 Development Phase D11 — Delivery / Dispatch / Last-Mile Engine", self.check_delivery_lastmile_step),
             ("ComplianceTrust", "Phase 45 Development Phase D12 — Compliance & Trust Engine", self.check_compliance_trust_step),
+            ("SecurityFraud", "Phase 46 Development Phase D13 — Fraud, Abuse & Security Operations Engine", self.check_security_fraud_step),
         ]
 
         results: list[ConstitutionCheckResult] = []
@@ -285,6 +286,15 @@ class ConstitutionChecker:
         if res["score_pct"] < 100.0:
             return [f"Compliance trust audit failed: {res['score_pct']}% verified."]
         return []
+
+    def check_security_fraud_step(self) -> list[str]:
+        from scripts.constitution.check_security_fraud import SecurityFraudChecker
+        checker = SecurityFraudChecker(root_dir=self.root_dir)
+        res = checker.audit_security_fraud()
+        if res["score_pct"] < 100.0:
+            return [f"Security fraud audit failed: {res['score_pct']}% verified."]
+        return []
+
 
 
 
