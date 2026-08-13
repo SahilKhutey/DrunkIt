@@ -1,42 +1,57 @@
-"""Delivery service API schemas."""
-
-from __future__ import annotations
-
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
+
+from app.domain.delivery.enums import DeliveryStatus
 
 
-class MissionCreate(BaseModel):
-    order_id: str
-    store_id: str
-    consumer_id: str
-    pickup_address: str = Field(min_length=3, max_length=255)
-    dropoff_address: str = Field(min_length=3, max_length=255)
+class DeliveryCreate(BaseModel):
+    order_id: str = Field(min_length=1)
+    retailer_id: str = Field(default="ret_default")
+    store_id: str = Field(min_length=1)
+    consumer_id: str = Field(min_length=1)
+
+    pickup_address: str = Field(min_length=1)
+    dropoff_address: str = Field(min_length=1)
 
 
-class MissionResponse(BaseModel):
+class DeliveryResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
-    mission_code: str
     order_id: str
+    retailer_id: str
     store_id: str
     consumer_id: str
-    status: str
+    driver_id: str | None
     pickup_address: str
     dropoff_address: str
-    assigned_driver_id: str | None
+    status: DeliveryStatus
     created_at: datetime
+    updated_at: datetime
 
 
-class DriverAssignRequest(BaseModel):
-    driver_id: str
+class StatusTransitionRequest(BaseModel):
+    target_status: DeliveryStatus
+
+
+class DriverAssignmentRequest(BaseModel):
+    driver_id: str = Field(min_length=1)
+
+
+# Compatibility aliases
+MissionCreate = DeliveryCreate
+DriverAssignRequest = DriverAssignmentRequest
 
 
 class LocationPingRequest(BaseModel):
-    driver_id: str
-    latitude: float
-    longitude: float
+    driver_id: str = Field(default="drv_123")
+    latitude: float = Field(default=12.9716)
+    longitude: float = Field(default=77.5946)
 
 
 class DeliveryCompleteRequest(BaseModel):
-    otp: str = Field(min_length=4, max_length=6)
+    proof_token: str = Field(default="pod_token_123")
+    otp: str = Field(default="1234")
+
+
