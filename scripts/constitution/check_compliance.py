@@ -91,6 +91,7 @@ class ConstitutionChecker:
             ("FunctionalModules", "Phase 26 Master 66 Functional Architecture Modules", self.check_functional_modules_step),
             ("CommunicationArchitecture", "Phase 27 Master Communication System Architecture Audit", self.check_communication_architecture_step),
             ("CatalogPlatform", "Phase 28 Master Catalog & Template System Architecture Audit", self.check_catalog_platform_step),
+            ("ProductCatalogSystem", "Phase 29 Master Product Catalog & Consumer View System Architecture Audit", self.check_product_catalog_system_step),
         ]
 
         results: list[ConstitutionCheckResult] = []
@@ -132,6 +133,15 @@ class ConstitutionChecker:
         if res["score_pct"] < 100.0:
             return [f"Catalog platform audit failed: {res['score_pct']}% verified."]
         return []
+
+    def check_product_catalog_system_step(self) -> list[str]:
+        from scripts.constitution.check_product_catalog_system import ProductCatalogSystemChecker
+        checker = ProductCatalogSystemChecker(root_dir=self.root_dir)
+        res = checker.audit_product_catalog_system()
+        if res["score_pct"] < 100.0:
+            return [f"Product catalog system audit failed: {res['score_pct']}% verified."]
+        return []
+
 
 
 
