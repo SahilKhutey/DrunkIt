@@ -90,6 +90,7 @@ class ConstitutionChecker:
             ("SupportAgentService", "Phase 12 AI Support Agent Service Microservice", self.check_support_agent_service_step),
             ("FunctionalModules", "Phase 26 Master 66 Functional Architecture Modules", self.check_functional_modules_step),
             ("CommunicationArchitecture", "Phase 27 Master Communication System Architecture Audit", self.check_communication_architecture_step),
+            ("CatalogPlatform", "Phase 28 Master Catalog & Template System Architecture Audit", self.check_catalog_platform_step),
         ]
 
         results: list[ConstitutionCheckResult] = []
@@ -123,6 +124,15 @@ class ConstitutionChecker:
         if res["score_pct"] < 100.0:
             return [f"Communication architecture audit failed: {res['score_pct']}% verified."]
         return []
+
+    def check_catalog_platform_step(self) -> list[str]:
+        from scripts.constitution.check_catalog_platform import CatalogPlatformChecker
+        checker = CatalogPlatformChecker(root_dir=self.root_dir)
+        res = checker.audit_catalog_platform()
+        if res["score_pct"] < 100.0:
+            return [f"Catalog platform audit failed: {res['score_pct']}% verified."]
+        return []
+
 
 
     def check_security(self) -> list[str]:
