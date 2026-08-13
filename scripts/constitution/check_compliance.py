@@ -104,6 +104,7 @@ class ConstitutionChecker:
             ("ComplianceEngine", "Phase 39 Development Phase D6 — Identity, Verification & Compliance Engine", self.check_compliance_engine_step),
             ("RegulatoryCatalogue", "Phase 40 Development Phase D7 — Regulatory Product Catalogue & SKU Intelligence Engine", self.check_regulatory_catalogue_step),
             ("InventoryFulfilment", "Phase 41 Development Phase D8 — Inventory + Store Fulfilment Engine", self.check_inventory_fulfilment_step),
+            ("OrderCheckout", "Phase 42 Development Phase D9 — Order Management + Checkout Engine", self.check_order_checkout_step),
         ]
 
         results: list[ConstitutionCheckResult] = []
@@ -249,6 +250,15 @@ class ConstitutionChecker:
         if res["score_pct"] < 100.0:
             return [f"Inventory fulfilment audit failed: {res['score_pct']}% verified."]
         return []
+
+    def check_order_checkout_step(self) -> list[str]:
+        from scripts.constitution.check_order_checkout import OrderCheckoutChecker
+        checker = OrderCheckoutChecker(root_dir=self.root_dir)
+        res = checker.audit_order_checkout()
+        if res["score_pct"] < 100.0:
+            return [f"Order checkout audit failed: {res['score_pct']}% verified."]
+        return []
+
 
 
 
