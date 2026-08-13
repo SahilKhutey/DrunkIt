@@ -92,6 +92,7 @@ class ConstitutionChecker:
             ("CommunicationArchitecture", "Phase 27 Master Communication System Architecture Audit", self.check_communication_architecture_step),
             ("CatalogPlatform", "Phase 28 Master Catalog & Template System Architecture Audit", self.check_catalog_platform_step),
             ("ProductCatalogSystem", "Phase 29 Master Product Catalog & Consumer View System Architecture Audit", self.check_product_catalog_system_step),
+            ("WebUIArchitecture", "Phase 30 Master Web UI & Visual Development Architecture Audit", self.check_web_ui_architecture_step),
         ]
 
         results: list[ConstitutionCheckResult] = []
@@ -141,6 +142,15 @@ class ConstitutionChecker:
         if res["score_pct"] < 100.0:
             return [f"Product catalog system audit failed: {res['score_pct']}% verified."]
         return []
+
+    def check_web_ui_architecture_step(self) -> list[str]:
+        from scripts.constitution.check_web_ui_architecture import WebUIArchitectureChecker
+        checker = WebUIArchitectureChecker(root_dir=self.root_dir)
+        res = checker.audit_web_ui_architecture()
+        if res["score_pct"] < 100.0:
+            return [f"Web UI architecture audit failed: {res['score_pct']}% verified."]
+        return []
+
 
 
 
