@@ -106,6 +106,7 @@ class ConstitutionChecker:
             ("InventoryFulfilment", "Phase 41 Development Phase D8 — Inventory + Store Fulfilment Engine", self.check_inventory_fulfilment_step),
             ("OrderCheckout", "Phase 42 Development Phase D9 — Order Management + Checkout Engine", self.check_order_checkout_step),
             ("PaymentFinancial", "Phase 43 Development Phase D10 — Payment + Financial Transaction Engine", self.check_payment_financial_step),
+            ("DeliveryLastmile", "Phase 44 Development Phase D11 — Delivery / Dispatch / Last-Mile Engine", self.check_delivery_lastmile_step),
         ]
 
         results: list[ConstitutionCheckResult] = []
@@ -267,6 +268,15 @@ class ConstitutionChecker:
         if res["score_pct"] < 100.0:
             return [f"Payment financial audit failed: {res['score_pct']}% verified."]
         return []
+
+    def check_delivery_lastmile_step(self) -> list[str]:
+        from scripts.constitution.check_delivery_lastmile import DeliveryLastmileChecker
+        checker = DeliveryLastmileChecker(root_dir=self.root_dir)
+        res = checker.audit_delivery_lastmile()
+        if res["score_pct"] < 100.0:
+            return [f"Delivery last-mile audit failed: {res['score_pct']}% verified."]
+        return []
+
 
 
 
