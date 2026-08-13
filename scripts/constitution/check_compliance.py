@@ -101,6 +101,8 @@ class ConstitutionChecker:
             ("DispatchEngineService", "Phase 36 Development Phase D3 — Dispatch Engine", self.check_dispatch_engine_service_step),
             ("FulfilmentService", "Phase 37 Development Phase D4 — Fulfilment + Serviceability Engine", self.check_fulfilment_service_step),
             ("ProductionInfrastructure", "Phase 38 Development Phase D5 — Production Data & Real-Time Infrastructure", self.check_production_infrastructure_step),
+            ("ComplianceEngine", "Phase 39 Development Phase D6 — Identity, Verification & Compliance Engine", self.check_compliance_engine_step),
+            ("RegulatoryCatalogue", "Phase 40 Development Phase D7 — Regulatory Product Catalogue & SKU Intelligence Engine", self.check_regulatory_catalogue_step),
         ]
 
         results: list[ConstitutionCheckResult] = []
@@ -222,6 +224,23 @@ class ConstitutionChecker:
         if res["score_pct"] < 100.0:
             return [f"Production infrastructure audit failed: {res['score_pct']}% verified."]
         return []
+
+    def check_compliance_engine_step(self) -> list[str]:
+        from scripts.constitution.check_compliance_engine import ComplianceEngineChecker
+        checker = ComplianceEngineChecker(root_dir=self.root_dir)
+        res = checker.audit_compliance_engine()
+        if res["score_pct"] < 100.0:
+            return [f"Compliance engine audit failed: {res['score_pct']}% verified."]
+        return []
+
+    def check_regulatory_catalogue_step(self) -> list[str]:
+        from scripts.constitution.check_regulatory_catalogue import RegulatoryCatalogueChecker
+        checker = RegulatoryCatalogueChecker(root_dir=self.root_dir)
+        res = checker.audit_regulatory_catalogue()
+        if res["score_pct"] < 100.0:
+            return [f"Regulatory catalogue audit failed: {res['score_pct']}% verified."]
+        return []
+
 
 
 

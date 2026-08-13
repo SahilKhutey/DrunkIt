@@ -1,0 +1,31 @@
+{
+  "jurisdiction": "EXAMPLE",
+  "policy_version": "2026.1",
+  "enabled": false,
+
+  "consumer": {
+    "identity_required": true,
+    "eligibility_verification_required": true
+  },
+
+  "retailer": {
+    "active_licence_required": true
+  },
+
+  "delivery": {
+    "location_serviceability_required": true
+  },
+
+  "product": {
+    "approved_catalogue_only": true
+  },
+
+  "transaction": {
+    "time_window_check": true,
+    "quantity_limit_check": true
+  },
+
+  "handoff": {
+    "final_verification_required": true
+  }
+}
