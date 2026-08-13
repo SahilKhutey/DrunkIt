@@ -88,31 +88,8 @@ class ConstitutionChecker:
             ("GatewayService", "Phase 11 API Gateway Service Microservice", self.check_gateway_service_step),
             ("WhitelabelService", "Phase 12 Whitelabel Service Microservice", self.check_whitelabel_service_step),
             ("SupportAgentService", "Phase 12 AI Support Agent Service Microservice", self.check_support_agent_service_step),
+            ("FunctionalModules", "Phase 26 Master 66 Functional Architecture Modules", self.check_functional_modules_step),
         ]
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
         results: list[ConstitutionCheckResult] = []
         for art_id, name, check_fn in articles:
@@ -129,6 +106,14 @@ class ConstitutionChecker:
             "compliance_score_pct": round((passed_count / total) * 100, 2),
             "results": [r.__dict__ for r in results],
         }
+
+    def check_functional_modules_step(self) -> list[str]:
+        from scripts.constitution.check_functional_modules import FunctionalModulesChecker
+        checker = FunctionalModulesChecker(root_dir=self.root_dir)
+        res = checker.audit_functional_modules()
+        if res["score_pct"] < 100.0:
+            return [f"Functional modules audit failed: {res['score_pct']}% verified."]
+        return []
 
     def check_security(self) -> list[str]:
         violations = []
