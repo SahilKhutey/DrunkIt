@@ -94,6 +94,8 @@ class ConstitutionChecker:
             ("ProductCatalogSystem", "Phase 29 Master Product Catalog & Consumer View System Architecture Audit", self.check_product_catalog_system_step),
             ("WebUIArchitecture", "Phase 30 Master Web UI & Visual Development Architecture Audit", self.check_web_ui_architecture_step),
             ("ProductCatalogAdminSystem", "Phase 31 Master User/Admin Product Catalog & Listing Template System Architecture Audit", self.check_product_catalog_admin_system_step),
+            ("ConsumerListingEngineSpec", "Phase 32 Consumer Listing Engine Specification Audit", self.check_consumer_listing_engine_spec_step),
+            ("DeliveryEngineSpec", "Phase 33 Delivery System & Logistics Engine Architecture Audit", self.check_delivery_engine_spec_step),
         ]
 
         results: list[ConstitutionCheckResult] = []
@@ -159,6 +161,23 @@ class ConstitutionChecker:
         if res["score_pct"] < 100.0:
             return [f"Product catalog admin audit failed: {res['score_pct']}% verified."]
         return []
+
+    def check_consumer_listing_engine_spec_step(self) -> list[str]:
+        from scripts.constitution.check_consumer_listing_engine import ConsumerListingEngineChecker
+        checker = ConsumerListingEngineChecker(root_dir=self.root_dir)
+        res = checker.audit_consumer_listing_engine()
+        if res["score_pct"] < 100.0:
+            return [f"Consumer listing engine audit failed: {res['score_pct']}% verified."]
+        return []
+
+    def check_delivery_engine_spec_step(self) -> list[str]:
+        from scripts.constitution.check_delivery_engine import DeliveryEngineChecker
+        checker = DeliveryEngineChecker(root_dir=self.root_dir)
+        res = checker.audit_delivery_engine()
+        if res["score_pct"] < 100.0:
+            return [f"Delivery engine audit failed: {res['score_pct']}% verified."]
+        return []
+
 
 
 
