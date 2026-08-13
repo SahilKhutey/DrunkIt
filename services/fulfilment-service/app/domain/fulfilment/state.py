@@ -1,0 +1,26 @@
+from enum import Enum
+
+
+class FulfilmentStatus(str, Enum):
+
+    CREATED = "CREATED"
+
+    VALIDATING = "VALIDATING"
+
+    STORE_SELECTED = "STORE_SELECTED"
+
+    INVENTORY_RESERVED = (
+        "INVENTORY_RESERVED"
+    )
+
+    READY_FOR_DELIVERY = (
+        "READY_FOR_DELIVERY"
+    )
+
+    DISPATCHING = "DISPATCHING"
+
+    COMPLETED = "COMPLETED"
+
+    CANCELLED = "CANCELLED"
+
+    FAILED = "FAILED"
