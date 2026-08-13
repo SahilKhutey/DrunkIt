@@ -109,6 +109,7 @@ class ConstitutionChecker:
             ("DeliveryLastmile", "Phase 44 Development Phase D11 — Delivery / Dispatch / Last-Mile Engine", self.check_delivery_lastmile_step),
             ("ComplianceTrust", "Phase 45 Development Phase D12 — Compliance & Trust Engine", self.check_compliance_trust_step),
             ("SecurityFraud", "Phase 46 Development Phase D13 — Fraud, Abuse & Security Operations Engine", self.check_security_fraud_step),
+            ("ObservabilityMonitoring", "Phase 47 Development Phase D14 — Observability, Monitoring & Reliability Engine", self.check_observability_monitoring_step),
         ]
 
         results: list[ConstitutionCheckResult] = []
@@ -294,6 +295,16 @@ class ConstitutionChecker:
         if res["score_pct"] < 100.0:
             return [f"Security fraud audit failed: {res['score_pct']}% verified."]
         return []
+
+    def check_observability_monitoring_step(self) -> list[str]:
+        from scripts.constitution.check_observability_monitoring import ObservabilityMonitoringChecker
+        checker = ObservabilityMonitoringChecker(root_dir=self.root_dir)
+        res = checker.audit_observability_monitoring()
+        if res["score_pct"] < 100.0:
+            return [f"Observability monitoring audit failed: {res['score_pct']}% verified."]
+        return []
+
+
 
 
 
