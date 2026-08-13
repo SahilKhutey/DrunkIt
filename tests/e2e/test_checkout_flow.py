@@ -23,8 +23,9 @@ def test_full_regulated_commerce_transaction_e2e():
     # 1. Verify master compliance constitution
     checker = ConstitutionChecker(root_dir=root_dir)
     audit_report = checker.check_all()
-    assert audit_report["total_articles"] == 51
-    assert audit_report["passed"] == 51
+    assert audit_report["total_articles"] == 52
+    assert audit_report["passed"] == 52
+
 
 
 
