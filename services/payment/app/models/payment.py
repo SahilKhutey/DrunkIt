@@ -1,75 +1,32 @@
-import uuid
-from datetime import datetime
+"""Payment database model."""
 
-from sqlalchemy import DateTime, Integer, String
-from sqlalchemy.dialects.postgresql import UUID
+from __future__ import annotations
+
+from decimal import Decimal
+from sqlalchemy import Enum, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column
+from faccp_platform.database.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
+from ..domain.enums import PaymentMethodType, PaymentStatus
 
-from packages.database.base import Base
 
+class Payment(Base, UUIDPrimaryKeyMixin, TimestampMixin):
+    """Payment aggregate root model."""
 
-class Payment(Base):
+    __tablename__ = "payments"
 
-    __tablename__ = "payments_d10"
-
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        primary_key=True,
-        default=uuid.uuid4,
-    )
-
-    order_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+    order_id: Mapped[str] = mapped_column(String(36), nullable=False, unique=True, index=True)
+    consumer_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    idempotency_key: Mapped[str] = mapped_column(String(128), nullable=False, unique=True, index=True)
+    amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+    currency: Mapped[str] = mapped_column(String(3), nullable=False, default="INR")
+    status: Mapped[PaymentStatus] = mapped_column(
+        Enum(PaymentStatus, name="payment_status"),
         nullable=False,
-        unique=True,
-        index=True,
+        default=PaymentStatus.CREATED,
     )
-
-    customer_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        nullable=False,
-        index=True,
-    )
-
-    amount: Mapped[int] = mapped_column(
-        Integer,
+    method: Mapped[PaymentMethodType] = mapped_column(
+        Enum(PaymentMethodType, name="payment_method"),
         nullable=False,
     )
-
-    currency: Mapped[str] = mapped_column(
-        String(3),
-        nullable=False,
-        default="INR",
-    )
-
-    status: Mapped[str] = mapped_column(
-        String(40),
-        nullable=False,
-        index=True,
-    )
-
-    provider: Mapped[str] = mapped_column(
-        String(80),
-        nullable=False,
-    )
-
-    provider_payment_id: Mapped[str | None] = mapped_column(
-        String(200),
-        nullable=True,
-    )
-
-    idempotency_key: Mapped[str] = mapped_column(
-        String(200),
-        nullable=False,
-        unique=True,
-    )
-
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-    )
-
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-    )
+    provider: Mapped[str] = mapped_column(String(100), nullable=False)
+    provider_payment_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
