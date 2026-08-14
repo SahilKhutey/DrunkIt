@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from uuid import uuid4
-from services.governance.app.security.hashing import calculate_event_hash, verify_event_chain
+from services.governance.app.security.hashing import calculate_event_hash
 
 GENESIS_HASH = "GENESIS"
 
@@ -46,10 +46,11 @@ class AuditEngine:
         return event_record
 
     async def verify_chain(self) -> bool:
-
         prev_hash = GENESIS_HASH
         for event in self.events:
-            if not verify_event_chain(prev_hash, event, event["event_hash"]):
+            event_copy = {k: v for k, v in event.items() if k != "event_hash"}
+            expected = calculate_event_hash(prev_hash, event_copy)
+            if expected != event["event_hash"]:
                 return False
             prev_hash = event["event_hash"]
         return True
