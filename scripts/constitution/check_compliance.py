@@ -111,6 +111,7 @@ class ConstitutionChecker:
             ("SecurityFraud", "Phase 46 Development Phase D13 — Fraud, Abuse & Security Operations Engine", self.check_security_fraud_step),
             ("ObservabilityMonitoring", "Phase 47 Development Phase D14 — Observability, Monitoring & Reliability Engine", self.check_observability_monitoring_step),
             ("ResilienceDisaster", "Phase 48 Development Phase D15 — Disaster Recovery, Resilience & Business Continuity Engine", self.check_resilience_disaster_step),
+            ("GovernanceControl", "Phase 49 Development Phase D16 — Audit, Governance, Policy & Regulatory Control Plane", self.check_governance_control_step),
         ]
 
         results: list[ConstitutionCheckResult] = []
@@ -312,6 +313,16 @@ class ConstitutionChecker:
         if res["score_pct"] < 100.0:
             return [f"Resilience disaster audit failed: {res['score_pct']}% verified."]
         return []
+
+    def check_governance_control_step(self) -> list[str]:
+        from scripts.constitution.check_governance_control import GovernanceControlChecker
+        checker = GovernanceControlChecker(root_dir=self.root_dir)
+        res = checker.audit_governance_control()
+        if res["score_pct"] < 100.0:
+            return [f"Governance control audit failed: {res['score_pct']}% verified."]
+        return []
+
+
 
 
 
