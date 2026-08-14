@@ -1,0 +1,15 @@
+environment: production
+image:
+  registry: ghcr.io
+  repository: sahilkhutey/drunkit
+  tag: 1.0.0
+services:
+  order:
+    replicas: 2
+    port: 8000
+  payment:
+    replicas: 2
+    port: 8000
+  inventory:
+    replicas: 2
+    port: 8000

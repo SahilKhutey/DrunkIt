@@ -1,0 +1,16 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: drunkit-migration
+  namespace: drunkit
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migration
+          image: drunkit/order-service:1.0.0
+          command:
+            - alembic
+            - upgrade
+            - head
