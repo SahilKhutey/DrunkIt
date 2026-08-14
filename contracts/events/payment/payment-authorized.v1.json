@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PaymentAuthorizedV1",
+  "type": "object",
+  "required": [
+    "payment_id",
+    "order_id",
+    "amount",
+    "currency"
+  ],
+  "properties": {
+    "payment_id": {
+      "type": "string"
+    },
+    "order_id": {
+      "type": "string"
+    },
+    "amount": {
+      "type": "number",
+      "minimum": 0
+    },
+    "currency": {
+      "type": "string"
+    }
+  }
+}

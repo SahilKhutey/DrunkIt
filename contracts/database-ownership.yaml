@@ -1,0 +1,26 @@
+services:
+  order-service:
+    owns:
+      - orders
+      - order_items
+      - order_saga
+
+  payment-service:
+    owns:
+      - payments
+      - payment_attempts
+
+  inventory-service:
+    owns:
+      - inventory
+      - reservations
+
+  delivery-service:
+    owns:
+      - deliveries
+      - delivery_attempts
+
+  compliance-service:
+    owns:
+      - compliance_decisions
+      - verification_records

@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OrderCreatedV1",
+  "type": "object",
+  "required": [
+    "order_id",
+    "customer_id",
+    "items",
+    "currency",
+    "total_amount"
+  ],
+  "properties": {
+    "order_id": {
+      "type": "string"
+    },
+    "customer_id": {
+      "type": "string"
+    },
+    "currency": {
+      "type": "string"
+    },
+    "total_amount": {
+      "type": "number",
+      "minimum": 0
+    },
+    "items": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "product_id",
+          "quantity"
+        ],
+        "properties": {
+          "product_id": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    }
+  }
+}

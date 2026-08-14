@@ -1,0 +1,36 @@
+events:
+  - type: order.created
+    version: 1
+    schema: order/order-created.v1.json
+    producer: order-service
+    topic: drunkit.order.v1
+
+  - type: order.cancelled
+    version: 1
+    schema: order/order-cancelled.v1.json
+    producer: order-service
+    topic: drunkit.order.v1
+
+  - type: payment.authorized
+    version: 1
+    schema: payment/payment-authorized.v1.json
+    producer: payment-service
+    topic: drunkit.payment.v1
+
+  - type: payment.failed
+    version: 1
+    schema: payment/payment-failed.v1.json
+    producer: payment-service
+    topic: drunkit.payment.v1
+
+  - type: inventory.reserved
+    version: 1
+    schema: inventory/inventory-reserved.v1.json
+    producer: inventory-service
+    topic: drunkit.inventory.v1
+
+  - type: compliance.approved
+    version: 1
+    schema: compliance/compliance-approved.v1.json
+    producer: compliance-service
+    topic: drunkit.compliance.v1
