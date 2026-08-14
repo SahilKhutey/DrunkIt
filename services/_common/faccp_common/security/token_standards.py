@@ -5,6 +5,12 @@ Token Standards as codified in Article 1 of the System Constitution (§1.3).
 from __future__ import annotations
 
 
+class TokenVerificationError(Exception):
+    """Raised when token verification fails."""
+
+    pass
+
+
 class TokenStandards:
     ACCESS_TOKEN_LIFETIME_MINUTES = 15
     REFRESH_TOKEN_LIFETIME_DAYS = 7
