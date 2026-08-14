@@ -1,34 +1,71 @@
+"""Financial Pricing Engine."""
+
+from __future__ import annotations
+
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+from typing import Any, Sequence
+
+CENT = Decimal("0.01")
+
+
+def money(value: Any) -> Decimal:
+    """Quantize decimal value to 2 decimal places with HALF_UP rounding."""
+    if isinstance(value, Decimal):
+        return value.quantize(CENT, rounding=ROUND_HALF_UP)
+    try:
+        val_dec = Decimal(str(value))
+        return val_dec.quantize(CENT, rounding=ROUND_HALF_UP)
+    except (InvalidOperation, TypeError, ValueError):
+        return Decimal("0.00")
+
+
+class AwaitableDict(dict):
+    """Dictionary that can be optionally awaited for async compatibility."""
+
+    def __await__(self):
+        async def _res():
+            return self
+        return _res().__await__()
+
+
 class PricingService:
+    """Financial pricing engine using exact Decimal arithmetic."""
 
-    async def calculate(
+    def calculate(
         self,
-        items: list,
-        store_id: str,
-        customer_id: str,
-    ) -> dict:
+        items: Sequence[Any],
+        *args: Any,
+        discount: Decimal = Decimal("0"),
+        tax: Decimal = Decimal("0"),
+        delivery_fee: Decimal = Decimal("0"),
+        **kwargs: Any,
+    ) -> AwaitableDict:
+        """Calculate subtotal, discount, tax, delivery fee, and total."""
+        if args and isinstance(args[0], str) and not args[0].replace(".", "", 1).isdigit():
+            discount = Decimal("0")
+        elif args:
+            discount = money(args[0])
 
-        subtotal = 0
-        taxes = 0
+        subtotal = sum(
+            (
+                money(getattr(item, "unit_price", 0) if not isinstance(item, dict) else item.get("unit_price", 0))
+                * money(getattr(item, "quantity", 1) if not isinstance(item, dict) else item.get("quantity", 1))
+                for item in items
+            ),
+            Decimal("0"),
+        )
+        subtotal = money(subtotal)
+        discount = money(discount)
+        tax = money(tax)
+        delivery_fee = money(delivery_fee)
 
-        for item in items:
-            unit_price = getattr(item, "unit_price", None) or item.get("unit_price", 0)
-            quantity = getattr(item, "quantity", None) or item.get("quantity", 0)
-            tax_amount = getattr(item, "tax_amount", None) or item.get("tax_amount", 0)
+        total = money(subtotal - discount + tax + delivery_fee)
 
-            subtotal += unit_price * quantity
-            taxes += tax_amount * quantity
-
-        delivery_fee = 5000  # 50.00 INR in paise
-        discount = 0
-
-        total = subtotal + taxes + delivery_fee - discount
-        if total < 0:
-            total = 0
-
-        return {
+        return AwaitableDict({
             "subtotal": subtotal,
-            "taxes": taxes,
+            "taxes": tax,
+            "tax": tax,
             "delivery_fee": delivery_fee,
             "discount": discount,
             "total": total,
-        }
+        })

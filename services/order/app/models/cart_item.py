@@ -1,34 +1,19 @@
-import uuid
+"""Cart Item database model."""
 
-from sqlalchemy import Integer
-from sqlalchemy.dialects.postgresql import UUID
+from __future__ import annotations
+
+from decimal import Decimal
+from sqlalchemy import ForeignKey, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column
+from faccp_platform.database.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
-from packages.database.base import Base
 
+class CartItem(Base, UUIDPrimaryKeyMixin, TimestampMixin):
+    """Shopping cart item model."""
 
-class CartItem(Base):
+    __tablename__ = "cart_items"
 
-    __tablename__ = "cart_items_d9"
-
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        primary_key=True,
-        default=uuid.uuid4,
-    )
-
-    cart_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        nullable=False,
-        index=True,
-    )
-
-    sku_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        nullable=False,
-    )
-
-    quantity: Mapped[int] = mapped_column(
-        Integer,
-        nullable=False,
-    )
+    cart_id: Mapped[str] = mapped_column(String(36), ForeignKey("carts.id"), nullable=False, index=True)
+    product_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    quantity: Mapped[Decimal] = mapped_column(Numeric(18, 3), nullable=False)
+    unit_price: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False, default=0)

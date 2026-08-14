@@ -1,46 +1,21 @@
-import uuid
-from datetime import datetime
+"""Cart database model."""
 
-from sqlalchemy import DateTime, String
-from sqlalchemy.dialects.postgresql import UUID
+from __future__ import annotations
+
+from sqlalchemy import Enum, String
 from sqlalchemy.orm import Mapped, mapped_column
+from faccp_platform.database.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
+from ..domain.enums import CartStatus
 
-from packages.database.base import Base
 
+class Cart(Base, UUIDPrimaryKeyMixin, TimestampMixin):
+    """Shopping cart entity model."""
 
-class Cart(Base):
+    __tablename__ = "carts"
 
-    __tablename__ = "carts_d9"
-
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        primary_key=True,
-        default=uuid.uuid4,
-    )
-
-    customer_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        nullable=False,
-        unique=True,
-    )
-
-    store_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True),
-        nullable=True,
-    )
-
-    status: Mapped[str] = mapped_column(
-        String(30),
-        nullable=False,
-        default="ACTIVE",
-    )
-
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-    )
-
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
+    consumer_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    status: Mapped[CartStatus] = mapped_column(
+        Enum(CartStatus, name="cart_status"),
+        default=CartStatus.ACTIVE,
         nullable=False,
     )

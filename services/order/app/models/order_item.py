@@ -1,54 +1,22 @@
-import uuid
+"""Order Item database model."""
 
-from sqlalchemy import Integer, String
-from sqlalchemy.dialects.postgresql import UUID
+from __future__ import annotations
+
+from decimal import Decimal
+from sqlalchemy import ForeignKey, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column
+from faccp_platform.database.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
-from packages.database.base import Base
 
+class OrderItem(Base, UUIDPrimaryKeyMixin, TimestampMixin):
+    """Line item entity snapshot inside an Order."""
 
-class OrderItem(Base):
+    __tablename__ = "order_items"
 
-    __tablename__ = "order_items_d9"
-
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        primary_key=True,
-        default=uuid.uuid4,
-    )
-
-    order_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        nullable=False,
-        index=True,
-    )
-
-    sku_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        nullable=False,
-    )
-
-    product_name_snapshot: Mapped[str] = mapped_column(
-        String(300),
-        nullable=False,
-    )
-
-    quantity: Mapped[int] = mapped_column(
-        Integer,
-        nullable=False,
-    )
-
-    unit_price: Mapped[int] = mapped_column(
-        Integer,
-        nullable=False,
-    )
-
-    tax_amount: Mapped[int] = mapped_column(
-        Integer,
-        nullable=False,
-    )
-
-    line_total: Mapped[int] = mapped_column(
-        Integer,
-        nullable=False,
-    )
+    order_id: Mapped[str] = mapped_column(String(36), ForeignKey("orders.id"), nullable=False, index=True)
+    product_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    product_name_snapshot: Mapped[str] = mapped_column(String(500), nullable=False)
+    quantity: Mapped[Decimal] = mapped_column(Numeric(18, 3), nullable=False)
+    unit_price: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+    line_total: Mapped[Decimal] = mapped_column(Numeric(18, 2), nullable=False)
+    currency: Mapped[str] = mapped_column(String(3), default="INR", nullable=False)

@@ -1,13 +1,34 @@
-from pydantic import BaseModel, Field
+"""Cart DTO schemas."""
+
+from __future__ import annotations
+
+import uuid
+from datetime import datetime
+from decimal import Decimal
+from pydantic import BaseModel, ConfigDict, Field
 
 
-class CartItemAdd(BaseModel):
+class AddToCartRequest(BaseModel):
+    product_id: uuid.UUID
+    quantity: Decimal = Field(gt=0)
+    unit_price: Decimal = Field(default=Decimal("0"), ge=0)
 
-    sku_id: str
 
-    quantity: int = Field(gt=0)
+class CartItemResponse(BaseModel):
+    id: uuid.UUID
+    cart_id: uuid.UUID
+    product_id: uuid.UUID
+    quantity: Decimal
+    unit_price: Decimal
+
+    model_config = ConfigDict(from_attributes=True)
 
 
-class CartItemUpdate(BaseModel):
+class CartResponse(BaseModel):
+    id: uuid.UUID
+    consumer_id: uuid.UUID
+    status: str
+    items: list[CartItemResponse] = Field(default_factory=list)
+    created_at: datetime
 
-    quantity: int = Field(gt=0)
+    model_config = ConfigDict(from_attributes=True)
