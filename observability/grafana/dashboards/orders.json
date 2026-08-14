@@ -1,0 +1,38 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "id": null,
+  "panels": [
+    {
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "id": 1,
+      "title": "Active Order Sagas by State",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "saga_active_total",
+          "legendFormat": "{{state}}"
+        }
+      ]
+    },
+    {
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "id": 2,
+      "title": "Order Completion vs Cancellation Rate",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(events_published_total{event_type=\"order.completed\"}[5m]))",
+          "legendFormat": "Completed"
+        },
+        {
+          "expr": "sum(rate(events_published_total{event_type=\"order.cancelled\"}[5m]))",
+          "legendFormat": "Cancelled"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 36,
+  "title": "FACCP Order Lifecycle & Business Metrics",
+  "version": 1
+}

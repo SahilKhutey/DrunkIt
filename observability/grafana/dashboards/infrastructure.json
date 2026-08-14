@@ -1,0 +1,22 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "id": null,
+  "panels": [
+    {
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
+      "id": 1,
+      "title": "System Resource Utilization & Memory",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "process_resident_memory_bytes",
+          "legendFormat": "Memory {{job}}"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 36,
+  "title": "FACCP Infrastructure Saturation",
+  "version": 1
+}

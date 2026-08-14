@@ -1,0 +1,46 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "id": null,
+  "panels": [
+    {
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "id": 1,
+      "title": "Published Events Total",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(events_published_total[5m])) by (topic)",
+          "legendFormat": "{{topic}}"
+        }
+      ]
+    },
+    {
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "id": 2,
+      "title": "Consumed Events Total",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(events_consumed_total[5m])) by (consumer)",
+          "legendFormat": "{{consumer}}"
+        }
+      ]
+    },
+    {
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
+      "id": 3,
+      "title": "DLQ Spikes Total",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(events_dlq_total[5m])) by (topic)",
+          "legendFormat": "{{topic}} DLQ"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 36,
+  "title": "FACCP Event Bus & Kafka Metrics",
+  "version": 1
+}
