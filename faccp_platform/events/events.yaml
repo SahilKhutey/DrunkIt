@@ -1,0 +1,42 @@
+version: "1.0"
+events:
+  order.created:
+    version: "1.0"
+    producer: order-service
+    topic: faccp.order.events
+    consumers:
+      - inventory-service
+      - payment-service
+      - audit-service
+
+  payment.authorized:
+    version: "1.0"
+    producer: payment-service
+    topic: faccp.payment.events
+    consumers:
+      - order-service
+      - audit-service
+
+  payment.failed:
+    version: "1.0"
+    producer: payment-service
+    topic: faccp.payment.events
+    consumers:
+      - order-service
+      - audit-service
+
+  inventory.reserved:
+    version: "1.0"
+    producer: inventory-service
+    topic: faccp.inventory.events
+    consumers:
+      - order-service
+      - audit-service
+
+  inventory.reservation_failed:
+    version: "1.0"
+    producer: inventory-service
+    topic: faccp.inventory.events
+    consumers:
+      - order-service
+      - audit-service
