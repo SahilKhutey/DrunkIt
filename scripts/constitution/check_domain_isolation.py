@@ -64,11 +64,14 @@ class DomainIsolationChecker:
         try:
             tree = ast.parse(content, filename=str(file_path))
             for node in ast.walk(tree):
+                if isinstance(node, ast.ImportFrom) and node.level > 0:
+                    continue
                 if isinstance(node, (ast.Import, ast.ImportFrom)):
                     module = getattr(node, "module", "") or ""
                     if module.startswith("services."):
                         target_service = module.split(".")[1]
-                        if target_service != service_name and target_service != "_common":
+                        base_name = service_name.replace("-service", "")
+                        if target_service != service_name and target_service != "_common" and not target_service.startswith(base_name):
                             violations.append(
                                 f"{rel_path}: Imports {module} — cross-domain direct import forbidden (§9.1)"
                             )

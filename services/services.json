@@ -1,0 +1,256 @@
+{
+  "version": "1.0.0",
+  "updated_at": "2026-08-14",
+  "services": {
+    "api-gateway": {
+      "name": "faccp-gateway",
+      "port": 8000,
+      "directory": "services/api-gateway",
+      "database": null,
+      "health_path": "/health",
+      "ready_path": "/ready",
+      "tier": "gateway",
+      "dependencies": []
+    },
+    "identity-service": {
+      "name": "faccp-identity",
+      "port": 8001,
+      "directory": "services/identity-service",
+      "database": "faccp_identity",
+      "health_path": "/health",
+      "ready_path": "/ready",
+      "tier": "golden_path",
+      "dependencies": ["postgres", "redis", "kafka"]
+    },
+    "consumer-service": {
+      "name": "faccp-consumer",
+      "port": 8002,
+      "directory": "services/consumer-service",
+      "database": "faccp_consumer",
+      "health_path": "/health",
+      "ready_path": "/ready",
+      "tier": "golden_path",
+      "dependencies": ["postgres", "identity-service"]
+    },
+    "retailer-service": {
+      "name": "faccp-retailer",
+      "port": 8003,
+      "directory": "services/retailer-service",
+      "database": "faccp_retailer",
+      "health_path": "/health",
+      "ready_path": "/ready",
+      "tier": "core",
+      "dependencies": ["postgres"]
+    },
+    "catalog-service": {
+      "name": "faccp-catalog",
+      "port": 8004,
+      "directory": "services/catalog-service",
+      "database": "faccp_catalog",
+      "health_path": "/health",
+      "ready_path": "/ready",
+      "tier": "golden_path",
+      "dependencies": ["postgres", "redis"]
+    },
+    "inventory-service": {
+      "name": "faccp-inventory",
+      "port": 8005,
+      "directory": "services/inventory-service",
+      "database": "faccp_inventory",
+      "health_path": "/health",
+      "ready_path": "/ready",
+      "tier": "golden_path",
+      "dependencies": ["postgres", "redis", "catalog-service"]
+    },
+    "order-service": {
+      "name": "faccp-order",
+      "port": 8006,
+      "directory": "services/order-service",
+      "database": "faccp_order",
+      "health_path": "/health",
+      "ready_path": "/ready",
+      "tier": "golden_path",
+      "dependencies": ["postgres", "kafka", "catalog-service", "inventory-service", "compliance-service", "payment-service"]
+    },
+    "compliance-service": {
+      "name": "faccp-compliance",
+      "port": 8007,
+      "directory": "services/compliance-service",
+      "database": "faccp_compliance",
+      "health_path": "/health",
+      "ready_path": "/ready",
+      "tier": "golden_path",
+      "dependencies": ["postgres", "redis", "identity-service"]
+    },
+    "payment-service": {
+      "name": "faccp-payment",
+      "port": 8008,
+      "directory": "services/payment-service",
+      "database": "faccp_payment",
+      "health_path": "/health",
+      "ready_path": "/ready",
+      "tier": "golden_path",
+      "dependencies": ["postgres", "kafka"]
+    },
+    "delivery-service": {
+      "name": "faccp-delivery",
+      "port": 8009,
+      "directory": "services/delivery-service",
+      "database": "faccp_delivery",
+      "health_path": "/health",
+      "ready_path": "/ready",
+      "tier": "golden_path",
+      "dependencies": ["postgres", "redis", "kafka", "order-service"]
+    },
+    "audit-service": {
+      "name": "faccp-audit",
+      "port": 8010,
+      "directory": "services/audit-service",
+      "database": "faccp_audit",
+      "health_path": "/health",
+      "ready_path": "/ready",
+      "tier": "golden_path",
+      "dependencies": ["postgres", "kafka"]
+    },
+    "risk-service": {
+      "name": "faccp-risk",
+      "port": 8011,
+      "directory": "services/risk-service",
+      "database": "faccp_risk",
+      "health_path": "/health",
+      "ready_path": "/ready",
+      "tier": "core",
+      "dependencies": ["postgres", "redis"]
+    },
+    "realtime-service": {
+      "name": "faccp-realtime",
+      "port": 8012,
+      "directory": "services/realtime-service",
+      "database": "faccp_realtime",
+      "health_path": "/health",
+      "ready_path": "/ready",
+      "tier": "core",
+      "dependencies": ["redis", "kafka"]
+    },
+    "analytics-service": {
+      "name": "faccp-analytics",
+      "port": 8013,
+      "directory": "services/analytics-service",
+      "database": "faccp_analytics",
+      "health_path": "/health",
+      "ready_path": "/ready",
+      "tier": "analytics",
+      "dependencies": ["postgres", "kafka"]
+    },
+    "recommendation-service": {
+      "name": "faccp-recommendation",
+      "port": 8014,
+      "directory": "services/recommendation-service",
+      "database": null,
+      "health_path": "/health",
+      "ready_path": "/ready",
+      "tier": "growth",
+      "dependencies": ["redis", "catalog-service"]
+    },
+    "verification-service": {
+      "name": "faccp-verification",
+      "port": 8015,
+      "directory": "services/verification-service",
+      "database": "faccp_verification",
+      "health_path": "/health",
+      "ready_path": "/ready",
+      "tier": "golden_path",
+      "dependencies": ["postgres", "redis"]
+    },
+    "notification-service": {
+      "name": "faccp-notification",
+      "port": 8016,
+      "directory": "services/notification-service",
+      "database": "faccp_notification",
+      "health_path": "/health",
+      "ready_path": "/ready",
+      "tier": "core",
+      "dependencies": ["postgres", "kafka"]
+    },
+    "pricing-service": {
+      "name": "faccp-pricing",
+      "port": 8017,
+      "directory": "services/pricing-service",
+      "database": "faccp_pricing",
+      "health_path": "/health",
+      "ready_path": "/ready",
+      "tier": "core",
+      "dependencies": ["postgres", "redis"]
+    },
+    "whitelabel-service": {
+      "name": "faccp-whitelabel",
+      "port": 8018,
+      "directory": "services/whitelabel-service",
+      "database": "faccp_whitelabel",
+      "health_path": "/health",
+      "ready_path": "/ready",
+      "tier": "enterprise",
+      "dependencies": ["postgres"]
+    },
+    "developer-portal": {
+      "name": "faccp-developer-portal",
+      "port": 8019,
+      "directory": "services/developer-portal",
+      "database": "faccp_portal",
+      "health_path": "/health",
+      "ready_path": "/ready",
+      "tier": "enterprise",
+      "dependencies": ["postgres", "redis"]
+    },
+    "cdp-service": {
+      "name": "faccp-cdp",
+      "port": 8020,
+      "directory": "services/cdp-service",
+      "database": "faccp_cdp",
+      "health_path": "/health",
+      "ready_path": "/ready",
+      "tier": "growth",
+      "dependencies": ["postgres", "kafka"]
+    },
+    "marketing-service": {
+      "name": "faccp-marketing",
+      "port": 8021,
+      "directory": "services/marketing-service",
+      "database": "faccp_marketing",
+      "health_path": "/health",
+      "ready_path": "/ready",
+      "tier": "growth",
+      "dependencies": ["postgres", "cdp-service"]
+    },
+    "compliance-reporting-service": {
+      "name": "faccp-compliance-reporting",
+      "port": 8022,
+      "directory": "services/compliance-reporting-service",
+      "database": "faccp_reporting",
+      "health_path": "/health",
+      "ready_path": "/ready",
+      "tier": "compliance",
+      "dependencies": ["postgres", "compliance-service", "audit-service"]
+    },
+    "support-agent": {
+      "name": "faccp-support",
+      "port": 8023,
+      "directory": "services/support-agent",
+      "database": "faccp_support",
+      "health_path": "/health",
+      "ready_path": "/ready",
+      "tier": "support",
+      "dependencies": ["postgres"]
+    },
+    "driver-service": {
+      "name": "faccp-driver",
+      "port": 8024,
+      "directory": "services/driver-service",
+      "database": "faccp_driver",
+      "health_path": "/health",
+      "ready_path": "/ready",
+      "tier": "logistics",
+      "dependencies": ["postgres", "delivery-service"]
+    }
+  }
+}

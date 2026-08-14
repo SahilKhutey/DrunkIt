@@ -1,7 +1,14 @@
 import sys
 import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../services/risk-service")))
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../services/recommendation-service")))
+
+for k in list(sys.modules.keys()):
+    if k == "app" or k.startswith("app."):
+        sys.modules.pop(k, None)
+
+risk_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../services/risk-service"))
+rec_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../services/recommendation-service"))
+
+sys.path.insert(0, risk_path)
 
 import pytest
 from faccp_common.federation import JurisdictionRouter, FederatedRequest, TenantContext
@@ -10,6 +17,12 @@ from faccp_common.privacy import detect_pii, redact_pii, k_anonymize, anonymize_
 from faccp_common.slo import ErrorBudget
 from app.ml.feature_engineering import FeatureExtractor
 from app.ml.fraud_detector import FraudDetectionEnsemble, get_fraud_ensemble
+
+for k in list(sys.modules.keys()):
+    if k == "app" or k.startswith("app."):
+        sys.modules.pop(k, None)
+
+sys.path.insert(0, rec_path)
 from app.services.recommender import ProductRecommender
 
 

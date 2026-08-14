@@ -1,0 +1,45 @@
+services:
+  gateway:
+    critical: true
+    public: true
+    health: /health/ready
+
+  identity:
+    critical: true
+    public: false
+    health: /health/ready
+
+  order:
+    critical: true
+    public: false
+    health: /health/ready
+
+  payment:
+    critical: true
+    public: false
+    health: /health/ready
+
+  inventory:
+    critical: true
+    public: false
+    health: /health/ready
+
+  compliance:
+    critical: true
+    public: false
+    health: /health/ready
+
+  verification:
+    critical: true
+    public: false
+    health: /health/ready
+
+  delivery:
+    critical: true
+    public: false
+    health: /health/ready
+
+  audit:
+    critical: true
+    public: false
+    health: /health/ready

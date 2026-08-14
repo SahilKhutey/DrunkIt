@@ -1,0 +1,28 @@
+name: DrunkIt Production Deployment
+
+on:
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+      - name: Python tests
+        run: pytest tests/unit -q
+      - name: Contract tests
+        run: pytest tests/contract -q
+      - name: Integration tests
+        run: pytest tests/integration -q
+      - name: E2E tests
+        run: pytest tests/e2e -q
+      - name: Go/No-Go Decision Gate
+        run: python deployment/scripts/go_live_check.py

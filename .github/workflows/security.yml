@@ -1,0 +1,19 @@
+name: Security & Audit Scan
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan Secrets
+        run: |
+          ! git grep -n -E 'BEGIN PRIVATE KEY|password=|secret=|api_key=' -- ':!*.lock' ':!*.example*' ':!tests/*'
+      - name: Run Architecture & Contract Audit
+        run: |
+          python scripts/architecture_check.py

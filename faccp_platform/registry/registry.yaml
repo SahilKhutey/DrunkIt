@@ -1,0 +1,198 @@
+version: "1.0"
+
+infrastructure:
+  postgres:
+    name: postgres
+    type: infrastructure
+    runtime: docker
+    host: localhost
+    port: 5432
+    health:
+      path: /
+  redis:
+    name: redis
+    type: infrastructure
+    runtime: docker
+    host: localhost
+    port: 6379
+    health:
+      path: /
+  kafka:
+    name: kafka
+    type: infrastructure
+    runtime: docker
+    host: localhost
+    port: 9092
+    health:
+      path: /
+
+services:
+  gateway:
+    name: gateway
+    type: backend
+    runtime: python
+    host: localhost
+    port: 8000
+    health:
+      path: /health
+    readiness:
+      path: /ready
+    dependencies:
+      - identity
+
+  identity:
+    name: identity
+    type: backend
+    runtime: python
+    host: localhost
+    port: 8001
+    health:
+      path: /health
+    readiness:
+      path: /ready
+    dependencies:
+      - postgres
+      - redis
+      - kafka
+
+  consumer:
+    name: consumer
+    type: backend
+    runtime: python
+    host: localhost
+    port: 8002
+    health:
+      path: /health
+    readiness:
+      path: /ready
+    dependencies:
+      - postgres
+      - identity
+
+  retailer:
+    name: retailer
+    type: backend
+    runtime: python
+    host: localhost
+    port: 8003
+    health:
+      path: /health
+    readiness:
+      path: /ready
+    dependencies:
+      - postgres
+      - redis
+
+  catalog:
+    name: catalog
+    type: backend
+    runtime: python
+    host: localhost
+    port: 8004
+    health:
+      path: /health
+    readiness:
+      path: /ready
+    dependencies:
+      - postgres
+      - redis
+
+  inventory:
+    name: inventory
+    type: backend
+    runtime: python
+    host: localhost
+    port: 8005
+    health:
+      path: /health
+    readiness:
+      path: /ready
+    dependencies:
+      - postgres
+      - redis
+
+  order:
+    name: order
+    type: backend
+    runtime: python
+    host: localhost
+    port: 8006
+    health:
+      path: /health
+    readiness:
+      path: /ready
+    dependencies:
+      - postgres
+      - inventory
+      - payment
+
+  payment:
+    name: payment
+    type: backend
+    runtime: python
+    host: localhost
+    port: 8007
+    health:
+      path: /health
+    readiness:
+      path: /ready
+    dependencies:
+      - postgres
+      - redis
+
+  delivery:
+    name: delivery
+    type: backend
+    runtime: python
+    host: localhost
+    port: 8008
+    health:
+      path: /health
+    readiness:
+      path: /ready
+    dependencies:
+      - postgres
+      - redis
+      - kafka
+
+  compliance:
+    name: compliance
+    type: backend
+    runtime: python
+    host: localhost
+    port: 8009
+    health:
+      path: /health
+    readiness:
+      path: /ready
+    dependencies:
+      - postgres
+      - redis
+
+  audit:
+    name: audit
+    type: backend
+    runtime: python
+    host: localhost
+    port: 8010
+    health:
+      path: /health
+    readiness:
+      path: /ready
+    dependencies:
+      - postgres
+      - kafka
+
+  risk:
+    name: risk
+    type: backend
+    runtime: python
+    host: localhost
+    port: 8011
+    health:
+      path: /health
+    readiness:
+      path: /ready
+    dependencies:
+      - postgres
+      - redis
