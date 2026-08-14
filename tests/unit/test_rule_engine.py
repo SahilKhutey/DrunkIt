@@ -4,6 +4,11 @@ from __future__ import annotations
 
 import sys
 import os
+
+for k in list(sys.modules.keys()):
+    if k == "app" or k.startswith("app."):
+        sys.modules.pop(k, None)
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../services/compliance-service")))
 
 from datetime import date, datetime, timezone

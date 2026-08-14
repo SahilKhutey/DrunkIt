@@ -1,45 +1,27 @@
+"""Compliance Policy database model."""
+
+from __future__ import annotations
+
 import uuid
-
-from sqlalchemy import JSON, String
-from sqlalchemy.dialects.postgresql import UUID
+from datetime import datetime
+from sqlalchemy import DateTime, Enum, String
 from sqlalchemy.orm import Mapped, mapped_column
+from faccp_platform.database.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
+from ..domain.enums import PolicyStatus
 
-from packages.database.base import Base
 
+class CompliancePolicy(Base, UUIDPrimaryKeyMixin, TimestampMixin):
+    """Regulated commerce policy entity model."""
 
-class CompliancePolicy(Base):
+    __tablename__ = "compliance_policies"
 
-    __tablename__ = "compliance_policies_d12"
-
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        primary_key=True,
-        default=uuid.uuid4,
-    )
-
-    policy_code: Mapped[str] = mapped_column(
-        String(100),
-        nullable=False,
-        index=True,
-    )
-
-    jurisdiction_id: Mapped[str] = mapped_column(
-        String(100),
-        nullable=False,
-        index=True,
-    )
-
-    version: Mapped[str] = mapped_column(
-        String(50),
+    jurisdiction_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    version: Mapped[str] = mapped_column(String(50), default="1.0.0", nullable=False)
+    status: Mapped[PolicyStatus] = mapped_column(
+        Enum(PolicyStatus, name="compliance_policy_status"),
+        default=PolicyStatus.DRAFT,
         nullable=False,
     )
-
-    status: Mapped[str] = mapped_column(
-        String(30),
-        nullable=False,
-    )
-
-    rules: Mapped[dict] = mapped_column(
-        JSON,
-        nullable=False,
-    )
+    effective_from: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    effective_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

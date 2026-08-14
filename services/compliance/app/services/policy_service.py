@@ -1,54 +1,51 @@
-from uuid import uuid4
+"""Policy management service."""
 
+from __future__ import annotations
 
-class PolicyMock:
-
-    def __init__(self, policy_code: str, jurisdiction_id: str, version: str, status: str, rules: dict | list):
-        self.id = str(uuid4())
-        self.policy_code = policy_code
-        self.jurisdiction_id = jurisdiction_id
-        self.version = version
-        self.status = status
-        self.rules = rules
+import uuid
+from sqlalchemy.ext.asyncio import AsyncSession
+from ..models.policy import CompliancePolicy
+from ..repositories.policy import PolicyRepository
+from ..schemas.policy import PolicyCreate
 
 
 class PolicyService:
+    """Service managing compliance policies."""
 
-    def __init__(self):
-        self.policies: dict[str, PolicyMock] = {}
-        # Pre-seed a default active policy
-        default_p = PolicyMock(
-            policy_code="ALCOHOL_HOME_DELIVERY",
-            jurisdiction_id="IN-STATE-X",
-            version="2026.01",
-            status="ACTIVE",
-            rules={
-                "rule_list": [
+    def __init__(self, session: AsyncSession | None = None) -> None:
+        self.session = session
+        self.repository = PolicyRepository(session) if session is not None else None
+
+    async def get(self, policy_id: str | uuid.UUID) -> CompliancePolicy | None:
+        """Fetch policy by ID."""
+        if self.repository is None:
+            return None
+        return await self.repository.get(policy_id)
+
+    async def get_policy(self, jurisdiction_id: str, operation: str = "") -> Any:
+        """Legacy helper returning active policy for jurisdiction."""
+        if self.repository is None:
+            from types import SimpleNamespace
+            return SimpleNamespace(
+                version="1.0.0",
+                rules=[
                     {
-                        "id": "consumer_verification",
-                        "type": "REQUIREMENT",
-                        "condition": {
-                            "field": "consumer_verification_status",
-                            "operator": "equals",
-                            "value": "VERIFIED",
-                        },
-                        "failure": "DENY",
-                        "message": "Consumer identity/age not verified",
+                        "field": "consumer_verification_status",
+                        "operator": "==",
+                        "value": "VERIFIED",
+                        "failure_action": "DENY",
                     }
-                ]
-            },
+                ],
+            )
+        return await self.repository.get(jurisdiction_id)
+
+    async def create(self, request: PolicyCreate) -> CompliancePolicy:
+        """Create new compliance policy."""
+        return await self.repository.create(
+            jurisdiction_id=request.jurisdiction_id,
+            name=request.name,
+            version=request.version,
+            effective_from=request.effective_from,
+            effective_until=request.effective_until,
+            status=request.status,
         )
-        self.policies[f"IN-STATE-X:CREATE_ALCOHOL_ORDER"] = default_p
-
-    async def get_policy(self, jurisdiction_id: str, operation: str) -> PolicyMock | None:
-        key = f"{jurisdiction_id}:{operation}"
-        if key in self.policies:
-            return self.policies[key]
-        # Return fallback active policy if jurisdiction exists
-        return self.policies.get("IN-STATE-X:CREATE_ALCOHOL_ORDER")
-
-    async def activate_policy(self, policy: PolicyMock) -> PolicyMock:
-        policy.status = "ACTIVE"
-        key = f"{policy.jurisdiction_id}:{policy.policy_code}"
-        self.policies[key] = policy
-        return policy

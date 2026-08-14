@@ -1,3 +1,12 @@
+import sys
+from pathlib import Path
+
+for k in list(sys.modules.keys()):
+    if k == "app" or k.startswith("app."):
+        sys.modules.pop(k, None)
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "services" / "marketing-service"))
+
 from datetime import datetime, timedelta, timezone
 
 from app.domain.automation import (

@@ -1,43 +1,37 @@
-from datetime import datetime, timezone
-from uuid import uuid4
+"""Compliance audit retrieval service."""
 
-from services.compliance.app.models.audit_event import hash_payload
+from __future__ import annotations
+
+import hashlib
+import json
+import uuid
+from typing import Any
+from sqlalchemy.ext.asyncio import AsyncSession
+from ..models.decision import EligibilityDecisionModel
+from ..repositories.decision import DecisionRepository
 
 
 class AuditService:
+    """Service retrieving and recording compliance decision audit records."""
 
-    def __init__(self):
-        self.audit_events: dict[str, list[dict]] = {}
+    def __init__(self, session: AsyncSession | None = None) -> None:
+        self.session = session
+        self.repository = DecisionRepository(session) if session is not None else None
 
-    async def record(
-        self,
-        action: str,
-        subject_id: str,
-        metadata: dict | None = None,
-        actor_type: str = "SYSTEM",
-        actor_id: str | None = None,
-        subject_type: str = "COMPLIANCE_SUBJECT",
-    ) -> dict:
+    async def get_decision(self, decision_id: str | uuid.UUID) -> EligibilityDecisionModel | None:
+        """Fetch decision audit log by decision_id."""
+        if self.repository is None:
+            return None
+        return await self.repository.get(decision_id)
 
-        payload = {
-            "action": action,
-            "subject_id": subject_id,
-            "metadata": metadata or {},
+    async def record(self, action_type: str, resource_id: str, metadata: Any = None) -> dict[str, Any]:
+        """Legacy helper for tamper-evident audit recording."""
+        payload_str = json.dumps(metadata or {}, default=str)
+        payload_hash = hashlib.sha256(payload_str.encode("utf-8")).hexdigest()
+        return {
+            "id": str(uuid.uuid4()),
+            "action_type": action_type,
+            "resource_id": resource_id,
+            "payload_hash": payload_hash,
+            "metadata": metadata,
         }
-        p_hash = hash_payload(payload)
-
-        event = {
-            "id": str(uuid4()),
-            "event_type": action,
-            "actor_type": actor_type,
-            "actor_id": actor_id,
-            "subject_type": subject_type,
-            "subject_id": subject_id,
-            "payload_hash": p_hash,
-            "created_at": datetime.now(timezone.utc),
-        }
-        self.audit_events.setdefault(subject_id, []).append(event)
-        return event
-
-    async def get_audits(self, subject_id: str) -> list[dict]:
-        return self.audit_events.get(subject_id, [])

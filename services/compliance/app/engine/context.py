@@ -1,25 +1,59 @@
-from dataclasses import dataclass
-from datetime import datetime
-from uuid import UUID
+"""Eligibility context definition for rule engine evaluation."""
+
+from __future__ import annotations
+
+import uuid
+from datetime import datetime, timezone
+from typing import Any
+from pydantic import BaseModel, ConfigDict, Field
 
 
-@dataclass
-class ComplianceContext:
+class ConsumerContext(BaseModel):
+    consumer_id: uuid.UUID | str
+    age: int | None = None
+    verified: bool = False
+    verification_status: str | None = None
 
-    consumer_id: UUID | str | None
 
-    retailer_id: UUID | str | None
+class ProductContext(BaseModel):
+    product_id: uuid.UUID | str
+    category: str | None = None
+    alcohol_type: str | None = None
+    abv: float | None = None
+    quantity: int = 1
 
-    rider_id: UUID | str | None
 
-    product_id: UUID | str | None
+class LocationContext(BaseModel):
+    country: str = "IN"
+    state: str | None = None
+    city: str | None = None
 
-    order_id: UUID | str | None
 
-    delivery_id: UUID | str | None
+class OrderContext(BaseModel):
+    total_quantity: int = 1
+    total_value: float = 0.0
 
-    jurisdiction_id: str
 
-    operation: str
+class EligibilityContext(BaseModel):
+    consumer: ConsumerContext | None = None
+    product: ProductContext | None = None
+    location: LocationContext | None = None
+    order: OrderContext = Field(default_factory=OrderContext)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-    timestamp: datetime
+    # Flat properties for legacy compatibility
+    consumer_id: str | None = None
+    retailer_id: str | None = None
+    rider_id: str | None = None
+    product_id: str | None = None
+    order_id: str | None = None
+    delivery_id: str | None = None
+    jurisdiction_id: str | None = None
+    operation: str | None = None
+    consumer_verification_status: str | None = None
+
+    model_config = ConfigDict(extra="allow")
+
+
+# Alias for legacy compatibility
+ComplianceContext = EligibilityContext

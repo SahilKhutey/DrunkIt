@@ -1,24 +1,25 @@
+"""Compliance Service entrypoint."""
+
+from __future__ import annotations
+
 from fastapi import FastAPI
-from services.compliance.app.api.audits import router as audits_router
-from services.compliance.app.api.consumer import router as consumer_router
-from services.compliance.app.api.decisions import router as decisions_router
-from services.compliance.app.api.policies import router as policies_router
-from services.compliance.app.api.retailer import router as retailer_router
-from services.compliance.app.api.rider import router as rider_router
 
-app = FastAPI(
-    title="Compliance & Trust Engine",
-    version="1.0.0",
-)
-
-app.include_router(decisions_router, prefix="/api/v1")
-app.include_router(consumer_router, prefix="/api/v1")
-app.include_router(retailer_router, prefix="/api/v1")
-app.include_router(rider_router, prefix="/api/v1")
-app.include_router(policies_router, prefix="/api/v1")
-app.include_router(audits_router, prefix="/api/v1")
+from faccp_platform.runtime.service import create_service_app
+from .api.routes.eligibility import router as eligibility_router
+from .api.routes.jurisdictions import router as jurisdiction_router
+from .api.routes.policies import router as policy_router
 
 
-@app.get("/health")
-async def health():
-    return {"status": "healthy", "service": "compliance"}
+def create_app() -> FastAPI:
+    """Instantiate FACCP Compliance Service FastAPI application."""
+    app = create_service_app(
+        name="compliance-service",
+        version="0.1.0",
+    )
+    app.include_router(eligibility_router)
+    app.include_router(jurisdiction_router)
+    app.include_router(policy_router)
+    return app
+
+
+app = create_app()

@@ -1,38 +1,17 @@
-import uuid
+"""Jurisdiction database model."""
 
-from sqlalchemy import String
-from sqlalchemy.dialects.postgresql import UUID
+from __future__ import annotations
+
+from sqlalchemy import Boolean, String
 from sqlalchemy.orm import Mapped, mapped_column
+from faccp_platform.database.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
-from packages.database.base import Base
 
+class Jurisdiction(Base, UUIDPrimaryKeyMixin, TimestampMixin):
+    """Geographic/regulatory jurisdiction entity model."""
 
-class Jurisdiction(Base):
+    __tablename__ = "jurisdictions"
 
-    __tablename__ = "jurisdictions_d12"
-
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        primary_key=True,
-        default=uuid.uuid4,
-    )
-
-    country_code: Mapped[str] = mapped_column(
-        String(5),
-        nullable=False,
-    )
-
-    state_code: Mapped[str | None] = mapped_column(
-        String(20),
-        nullable=True,
-    )
-
-    district_code: Mapped[str | None] = mapped_column(
-        String(50),
-        nullable=True,
-    )
-
-    status: Mapped[str] = mapped_column(
-        String(30),
-        nullable=False,
-    )
+    country_code: Mapped[str] = mapped_column(String(2), nullable=False, index=True)
+    state_code: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)
+    active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
