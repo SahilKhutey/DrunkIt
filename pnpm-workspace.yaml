@@ -1,5 +1,6 @@
 packages:
   - 'apps/admin-web'
   - 'apps/consumer-web'
+  - 'apps/drunkit-web'
   - 'apps/retailer-web'
   - 'packages/*'

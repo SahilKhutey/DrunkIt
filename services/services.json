@@ -251,6 +251,16 @@
       "ready_path": "/ready",
       "tier": "logistics",
       "dependencies": ["postgres", "delivery-service"]
+    },
+    "drunkit-mvp": {
+      "name": "faccp-drunkit-mvp",
+      "port": 8025,
+      "directory": "services/drunkit-mvp",
+      "database": "sqlite:///./drunkit_mvp.db",
+      "health_path": "/health",
+      "ready_path": "/health",
+      "tier": "golden_path",
+      "dependencies": []
     }
   }
 }

@@ -30,13 +30,16 @@ platform-health: ## Check platform health
 identity: ## Start identity service baseline
 	python -m uvicorn services.identity.app.main:app --host 0.0.0.0 --port 8001
 
+drunkit-mvp: ## Start drunkit-mvp service
+	cd services/drunkit-mvp && python -m uvicorn app.main:app --host 0.0.0.0 --port 8025 --reload
+
 dev-infra: ## Start infrastructure only
 	docker compose up -d postgres redis kafka minio mailhog otel-collector prometheus grafana jaeger loki
 	@sleep 10
 	@make kafka-create-topics
 
 dev-services: ## Start all backend services
-	@for service in identity-service consumer-service retailer-service catalog-service inventory-service order-service compliance-service audit-service risk-service verification-service delivery-service notification-service payment-service pricing-service analytics-service realtime-service; do \
+	@for service in identity-service consumer-service retailer-service catalog-service inventory-service order-service compliance-service audit-service risk-service verification-service delivery-service notification-service payment-service pricing-service analytics-service realtime-service drunkit-mvp; do \
 		(cd services/$$service && python -m uvicorn app.main:app --host 0.0.0.0 --port $$(echo $$service | grep -oE '[0-9]+$$' || echo 8000) --reload) & \
 	done
 	@echo "Services starting..."
@@ -52,7 +55,7 @@ db-check: ## Check platform database migration status
 
 migrate: ## Run all database migrations
 	python -m alembic upgrade head || true
-	@for service in identity-service consumer-service retailer-service catalog-service inventory-service order-service compliance-service audit-service risk-service verification-service delivery-service notification-service payment-service pricing-service analytics-service realtime-service; do \
+	@for service in identity-service consumer-service retailer-service catalog-service inventory-service order-service compliance-service audit-service risk-service verification-service delivery-service notification-service payment-service pricing-service analytics-service realtime-service drunkit-mvp; do \
 		echo "Migrating $$service..."; \
 		(cd services/$$service && alembic upgrade head) || echo "  (no migrations or failed)"; \
 	done
@@ -64,6 +67,8 @@ seed: ## Seed initial data
 	cd services/compliance-service && python -m app.scripts.seed_policies
 	@echo "Seeding catalog..."
 	cd services/catalog-service && python -m app.scripts.seed_catalog
+	@echo "Seeding drunkit-mvp..."
+	cd services/drunkit-mvp && python -m scripts.seed
 	@echo "Seed complete."
 
 test: ## Run unit and e2e tests
