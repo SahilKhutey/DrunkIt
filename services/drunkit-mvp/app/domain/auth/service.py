@@ -31,6 +31,14 @@ settings = get_settings()
 OTP_TTL_SECONDS = 5 * 60
 OTP_MAX_ATTEMPTS = 5
 SESSION_TTL_DAYS = 30
+# Per-phone cooldown: a new OTP cannot be requested while an unconsumed,
+# non-expired challenge already exists for that number. This is
+# IP-independent — it stops one actor from hammering a victim's phone
+# number from many different source IPs (which the IP-level limiter
+# in core/limiter.py can't prevent alone). If a user genuinely didn't
+# receive the code they should wait for it to expire (OTP_TTL_SECONDS)
+# before requesting a new one.
+OTP_COOLDOWN_CHECK = True  # can be set False in tests if needed
 
 
 class AuthError(Exception):
@@ -56,6 +64,20 @@ def request_otp(db: DBSession, *, phone: str) -> tuple[str, int, str | None]:
     dev_otp is None outside development — see module docstring.
     """
     phone = phone.strip()
+
+    # Per-phone cooldown: block if an active, unconsumed challenge exists.
+    existing = (
+        db.query(models.OTPChallenge)
+        .filter_by(phone=phone, consumed=False)
+        .order_by(models.OTPChallenge.created_at.desc())
+        .first()
+    )
+    if existing is not None and existing.expires_at > utcnow():
+        raise AuthError(
+            "COOLDOWN_ACTIVE",
+            "A verification code was already sent to this number. "
+            "Please wait for it to expire before requesting a new one.",
+        )
 
     consumer = db.query(models.Consumer).filter_by(phone=phone).first()
     if consumer is None:

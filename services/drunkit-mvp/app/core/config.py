@@ -41,6 +41,15 @@ class Settings(BaseSettings):
     # regardless of anything else in the request. Fail closed.
     fail_closed_on_missing_jurisdiction: bool = True
 
+    # IP-based rate limiting. Set false in test environments (handled
+    # via conftest.py) and can be disabled in local dev if needed.
+    rate_limit_enabled: bool = bool(os.getenv("RATE_LIMIT_ENABLED", "true").lower() not in ("false", "0", "no"))
+
+    # In dev/SQLite mode, allow create_all() as a shortcut instead of
+    # running Alembic. Set to "false" when using Alembic migrations
+    # (the Dockerfile CMD is the authoritative migration path).
+    auto_create_tables: bool = bool(os.getenv("AUTO_CREATE_TABLES", "true").lower() not in ("false", "0", "no"))
+
 
 @lru_cache
 def get_settings() -> Settings:
