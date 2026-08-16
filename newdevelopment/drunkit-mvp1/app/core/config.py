@@ -41,16 +41,6 @@ class Settings(BaseSettings):
     # regardless of anything else in the request. Fail closed.
     fail_closed_on_missing_jurisdiction: bool = True
 
-    # Rate limiting. Left on by default; tests turn it off explicitly
-    # (see tests/conftest.py) rather than relying on this default,
-    # so accidentally flipping this doesn't silently break the suite.
-    rate_limit_enabled: bool = os.getenv("RATE_LIMIT_ENABLED", "true").lower() == "true"
-
-    # Auto-create tables on startup instead of requiring `alembic
-    # upgrade head` first. Only ever appropriate for local SQLite dev
-    # convenience — see main.py's on_startup for the actual gate.
-    auto_create_tables: bool = os.getenv("AUTO_CREATE_TABLES", "true").lower() == "true"
-
 
 @lru_cache
 def get_settings() -> Settings:

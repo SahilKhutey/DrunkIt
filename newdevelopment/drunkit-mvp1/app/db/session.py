@@ -9,25 +9,12 @@ from app.core.config import get_settings
 
 settings = get_settings()
 
-connect_args: dict = {}
-engine_kwargs: dict = {"future": True}
-
+connect_args = {}
 if settings.database_url.startswith("sqlite"):
     # Needed for SQLite + FastAPI's threaded dev server.
     connect_args = {"check_same_thread": False}
-else:
-    # Postgres (or any real server-based DB): pool_pre_ping avoids
-    # handing out dead connections after a DB restart or idle
-    # connection reaping; sizes are conservative single-instance
-    # defaults, tune for real traffic before this matters.
-    engine_kwargs.update(
-        pool_pre_ping=True,
-        pool_size=5,
-        max_overflow=10,
-        pool_recycle=1800,
-    )
 
-engine = create_engine(settings.database_url, connect_args=connect_args, **engine_kwargs)
+engine = create_engine(settings.database_url, connect_args=connect_args, future=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, future=True)
 
 

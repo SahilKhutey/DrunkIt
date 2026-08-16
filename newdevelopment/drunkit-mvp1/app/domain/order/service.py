@@ -17,11 +17,8 @@ from dataclasses import dataclass
 
 from sqlalchemy.orm import Session
 
-from app.core.logging import get_logger
 from app.db import models
 from app.domain.eligibility.service import get_current_eligibility
-
-log = get_logger(__name__)
 
 
 class OrderError(Exception):
@@ -53,12 +50,10 @@ def create_order(
     # 1. Eligibility — re-evaluated server-side, right now, not trusted from earlier.
     eligibility = get_current_eligibility(db, consumer=consumer)
     if not eligibility.can_checkout:
-        log.info("order_rejected", reason="INELIGIBLE", consumer_id=consumer.id, store_id=store_id)
         raise OrderError("INELIGIBLE", eligibility.reason)
 
     store = db.query(models.Store).filter_by(id=store_id).first()
     if store is None or not store.active or not store.is_open:
-        log.info("order_rejected", reason="STORE_UNAVAILABLE", consumer_id=consumer.id, store_id=store_id)
         raise OrderError("STORE_UNAVAILABLE", "Store is not currently available.")
 
     order = models.Order(
@@ -97,14 +92,6 @@ def create_order(
         # Fail closed: no inventory record at all means we don't know
         # the state, so we refuse rather than assume available.
         if inventory is None or inventory.quantity < line.quantity:
-            log.info(
-                "order_rejected",
-                reason="OUT_OF_STOCK",
-                consumer_id=consumer.id,
-                product_id=product.id,
-                requested=line.quantity,
-                available=inventory.quantity if inventory else 0,
-            )
             raise OrderError(
                 "OUT_OF_STOCK",
                 f"{product.name} does not have enough stock at this store.",
@@ -139,15 +126,6 @@ def create_order(
     db.add(order)
     db.commit()
     db.refresh(order)
-
-    log.info(
-        "order_created",
-        order_id=order.id,
-        consumer_id=consumer.id,
-        store_id=store.id,
-        total_paise=order.total_paise,
-        item_count=len(lines),
-    )
     return order
 
 
