@@ -1,0 +1,160 @@
+# Database Ownership Manifest
+# ==============================
+# One database owner per bounded context.
+# No service may write to another service's database.
+# Cross-context data access MUST go through the owning service's API.
+#
+# Ownership is enforced by:
+#   1. This document (human reference)
+#   2. services/services.json (machine-readable registry)
+#   3. constitution.yml step: "domain-isolation" (automated enforcement)
+#
+# Last updated: 2026-08-16
+
+databases:
+  faccp_identity:
+    owner_service: identity-service
+    port: 8001
+    description: Consumer and retailer identity, authentication, sessions, OTP
+    tables:
+      - users
+      - sessions
+      - otp_attempts
+      - device_bindings
+    alembic_config: services/identity-service/alembic.ini
+    migrations: services/identity-service/migrations/
+
+  faccp_consumer:
+    owner_service: consumer-service
+    port: 8002
+    description: Consumer profiles, preferences, addresses
+    tables:
+      - consumer_profiles
+      - addresses
+      - preferences
+    alembic_config: services/consumer-service/alembic.ini
+    migrations: services/consumer-service/migrations/
+
+  faccp_retailer:
+    owner_service: retailer-service
+    port: 8003
+    description: Retailer profiles, store configuration, excise licenses
+    tables:
+      - retailer_profiles
+      - stores
+      - excise_licenses
+    alembic_config: services/retailer-service/alembic.ini
+    migrations: services/retailer-service/migrations/
+
+  faccp_catalog:
+    owner_service: catalog-service
+    port: 8004
+    description: Product catalog, categories, eligibility rules per SKU
+    tables:
+      - products
+      - categories
+      - product_eligibility_rules
+    alembic_config: services/catalog-service/alembic.ini
+    migrations: services/catalog-service/migrations/
+
+  faccp_inventory:
+    owner_service: inventory-service
+    port: 8005
+    description: Stock levels, reservations, warehouse allocation
+    tables:
+      - inventory
+      - reservations
+      - stock_movements
+    alembic_config: services/inventory-service/alembic.ini
+    migrations: services/inventory-service/migrations/
+
+  faccp_order:
+    owner_service: order-service
+    port: 8006
+    description: Orders, order items, state machine transitions, outbox events
+    tables:
+      - orders
+      - order_items
+      - order_state_transitions
+      - outbox_events
+    alembic_config: services/order-service/alembic.ini
+    migrations: services/order-service/migrations/
+
+  faccp_compliance:
+    owner_service: compliance-service
+    port: 8007
+    description: Compliance rules, jurisdiction config, eligibility decisions
+    tables:
+      - compliance_rules
+      - jurisdictions
+      - eligibility_decisions
+    alembic_config: services/compliance-service/alembic.ini
+    migrations: services/compliance-service/migrations/
+
+  faccp_payment:
+    owner_service: payment-service
+    port: 8013
+    description: Payment authorizations, captures, idempotency ledger
+    tables:
+      - payments
+      - payment_attempts
+      - idempotency_keys
+    alembic_config: services/payment-service/alembic.ini
+    migrations: services/payment-service/migrations/
+
+  faccp_delivery:
+    owner_service: delivery-service
+    port: 8011
+    description: Delivery assignments, driver state, handoff records
+    tables:
+      - deliveries
+      - driver_assignments
+      - handoff_records
+    alembic_config: services/delivery-service/alembic.ini
+    migrations: services/delivery-service/migrations/
+
+  faccp_audit:
+    owner_service: audit-service
+    port: 8008
+    description: Hash-chained audit trail — append-only, no updates/deletes
+    tables:
+      - audit_entries
+    immutable: true
+    note: >
+      Audit entries are hash-chained. Updates and deletes are prohibited.
+      The audit DB is the legal record for regulatory compliance.
+    alembic_config: services/audit-service/alembic.ini
+    migrations: services/audit-service/migrations/
+
+  faccp_risk:
+    owner_service: risk-service
+    port: 8009
+    description: Risk evaluations, fraud signals, velocity checks
+    tables:
+      - risk_evaluations
+      - fraud_signals
+    alembic_config: services/risk-service/alembic.ini
+    migrations: services/risk-service/migrations/
+
+  faccp_verification:
+    owner_service: verification-service
+    port: 8010
+    description: Age/identity verification records (PII-encrypted at rest)
+    tables:
+      - verification_records
+    pii_encrypted: true
+    alembic_config: services/verification-service/alembic.ini
+    migrations: services/verification-service/migrations/
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Rules
+# ──────────────────────────────────────────────────────────────────────────────
+rules:
+  - no service may query another service's database directly
+  - cross-context reads go through the owning service's REST API or event stream
+  - the audit database is append-only — no UPDATE or DELETE statements permitted
+  - PII columns in verification_records must be encrypted with FIELD_ENCRYPTION_KEY
+  - every database must have a corresponding Alembic migration chain
+  - migration execution order must match the service startup sequence
+  - the Postgres init script (infrastructure/postgres/init-databases.sh) must
+    create all databases listed here before any service starts

@@ -1,5 +1,28 @@
 name: faccp
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Docker Compose Profile Guide
+# ──────────────────────────────────────────────────────────────────────────────
+#
+#   Core (Postgres + Redis + DrunkIt MVP):
+#     docker compose --profile core up
+#
+#   Platform (Core + Kafka + MinIO + MailHog):
+#     docker compose --profile platform up
+#
+#   Full observability stack:
+#     docker compose --profile observability up
+#
+#   Everything:
+#     docker compose --profile core --profile platform --profile observability up
+#
+# ──────────────────────────────────────────────────────────────────────────────
+# Secret hygiene: All credentials MUST be injected via environment variables
+# referencing a secrets manager in staging/production. The default values here
+# are DEVELOPMENT ONLY and must never be used outside local dev.
+# See SECURITY.md for the credential rotation policy.
+# ──────────────────────────────────────────────────────────────────────────────
+
 x-postgres-base: &postgres-base
   image: postgres:16-alpine
   environment:
@@ -17,21 +40,22 @@ x-postgres-base: &postgres-base
   restart: unless-stopped
 
 services:
-  # ==========================================
-  # DATABASES
-  # ==========================================
+  # ============================================================================
+  # CORE PROFILE — minimum viable local development stack
+  # Start with: docker compose --profile core up
+  # ============================================================================
+
   postgres:
     <<: *postgres-base
     container_name: faccp-postgres
+    profiles: ["core", "platform", "observability"]
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
 
-  # ==========================================
-  # CACHE
-  # ==========================================
   redis:
     image: redis:7-alpine
     container_name: faccp-redis
+    profiles: ["core", "platform", "observability"]
     command: redis-server --appendonly yes
     volumes:
       - redis_data:/data
@@ -44,12 +68,45 @@ services:
       retries: 5
     restart: unless-stopped
 
-  # ==========================================
-  # EVENT BUS
-  # ==========================================
+  drunkit-mvp:
+    build:
+      context: services/drunkit-mvp
+      dockerfile: Dockerfile
+    container_name: faccp-drunkit-mvp
+    profiles: ["core", "platform", "observability"]
+    ports:
+      - "${MVP_PORT:-8025}:8025"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://faccp:faccp_dev_password_change_in_production@postgres:5432/faccp}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      JWT_SECRET: ${JWT_SECRET:-faccp_dev_jwt_secret_replace_in_production}
+      RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-true}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    env_file:
+      - path: .env
+        required: false
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8025/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  # ============================================================================
+  # PLATFORM PROFILE — adds event bus, object storage, email sink
+  # Start with: docker compose --profile platform up
+  # ============================================================================
+
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
     container_name: faccp-zookeeper
+    profiles: ["platform", "observability"]
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
@@ -60,6 +117,7 @@ services:
   kafka:
     image: confluentinc/cp-kafka:7.5.0
     container_name: faccp-kafka
+    profiles: ["platform", "observability"]
     depends_on:
       - zookeeper
     ports:
@@ -73,6 +131,8 @@ services:
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      # NOTE: replication factor 1 is for local dev ONLY.
+      # Production requires >= 3 brokers with replication factor >= 3.
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
       KAFKA_NUM_PARTITIONS: 3
     volumes:
@@ -84,28 +144,14 @@ services:
       retries: 10
     restart: unless-stopped
 
-  kafka-ui:
-    image: provectuslabs/kafka-ui:latest
-    container_name: faccp-kafka-ui
-    depends_on:
-      - kafka
-    ports:
-      - "8080:8080"
-    environment:
-      KAFKA_CLUSTERS_0_NAME: local
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
-    restart: unless-stopped
-
-  # ==========================================
-  # OBJECT STORAGE
-  # ==========================================
   minio:
     image: minio/minio:latest
     container_name: faccp-minio
+    profiles: ["platform", "observability"]
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-faccp}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-faccp_dev_password}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD must be set — see .env.example}
     volumes:
       - minio_data:/data
     ports:
@@ -121,6 +167,7 @@ services:
   minio-init:
     image: minio/mc:latest
     container_name: faccp-minio-init
+    profiles: ["platform", "observability"]
     depends_on:
       minio:
         condition: service_healthy
@@ -133,23 +180,24 @@ services:
       "
     restart: "no"
 
-  # ==========================================
-  # EMAIL (Development)
-  # ==========================================
   mailhog:
     image: mailhog/mailhog:latest
     container_name: faccp-mailhog
+    profiles: ["platform", "observability"]
     ports:
       - "1025:1025"
       - "8025:8025"
     restart: unless-stopped
 
-  # ==========================================
-  # OBSERVABILITY
-  # ==========================================
+  # ============================================================================
+  # OBSERVABILITY PROFILE — tracing, metrics, dashboards
+  # Start with: docker compose --profile observability up
+  # ============================================================================
+
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.96.0
     container_name: faccp-otel-collector
+    profiles: ["observability"]
     command: ["--config=/etc/otelcol/config.yaml"]
     volumes:
       - ./infrastructure/monitoring/otel-collector.yaml:/etc/otelcol/config.yaml:ro
@@ -161,6 +209,7 @@ services:
   prometheus:
     image: prom/prometheus:v2.51.0
     container_name: faccp-prometheus
+    profiles: ["observability"]
     volumes:
       - ./infrastructure/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
@@ -175,11 +224,12 @@ services:
   grafana:
     image: grafana/grafana:10.4.0
     container_name: faccp-grafana
+    profiles: ["observability"]
     depends_on:
       - prometheus
     environment:
-      GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD must be set — see .env.example}
     volumes:
       - grafana_data:/var/lib/grafana
       - ./infrastructure/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
@@ -190,11 +240,25 @@ services:
   jaeger:
     image: jaegertracing/all-in-one:1.55
     container_name: faccp-jaeger
+    profiles: ["observability"]
     environment:
       COLLECTOR_OTLP_ENABLED: "true"
     ports:
       - "16686:16686"
       - "14250:14250"
+    restart: unless-stopped
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: faccp-kafka-ui
+    profiles: ["observability"]
+    depends_on:
+      - kafka
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
     restart: unless-stopped
 
 volumes:

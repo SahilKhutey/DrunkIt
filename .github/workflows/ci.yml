@@ -11,10 +11,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -30,10 +32,23 @@ jobs:
             "alembic>=1.13.0" "PyYAML>=6.0" "jsonschema>=4.20.0" \
             "python-jose[cryptography]>=3.3.0" "email-validator>=2.0" \
             "numpy>=1.26.0" "prometheus-client>=0.20.0" \
-            "pytest>=8.0.0" "pytest-asyncio>=0.23.0" "hypothesis>=6.100.0"
-      - name: Run Pytest Suite
+            "pytest>=8.0.0" "pytest-asyncio>=0.23.0" "hypothesis>=6.100.0" \
+            "pytest-cov>=5.0.0"
+
+      - name: Run Unit Tests
         env:
           RATE_LIMIT_ENABLED: "false"
         run: |
-          pytest tests/unit -q
+          pytest tests/unit -q --tb=short
 
+      - name: Run Golden Path E2E (non-blocking)
+        env:
+          RATE_LIMIT_ENABLED: "false"
+          PYTHONPATH: "."
+        run: |
+          # Run the golden path E2E test suite. This validates the complete
+          # 9-step regulated commerce lifecycle in-process without external
+          # service dependencies. Failures are reported but do not block CI
+          # until the full integration harness is wired.
+          pytest tests/e2e/test_golden_path.py -v --tb=short || \
+            echo "::warning::Golden Path E2E had failures — see output above. This will become a hard gate in the next stabilization milestone."
