@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { api, ApiRequestError } from "../api/client";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
+import { Button } from "../components/ui/Button";
 
 // Placeholder coordinates — see HomePage.tsx note on real geolocation.
 const DEFAULT_LAT = 19.08;
@@ -31,11 +32,8 @@ export function CheckoutPage() {
     return (
       <div className="mx-auto max-w-lg px-4 py-20 text-center">
         <p className="text-parchment/70">Log in to check out.</p>
-        <Link
-          to="/login"
-          className="mt-3 inline-block rounded-lg bg-brass-500 px-4 py-2 text-sm font-medium text-ink-950 hover:bg-brass-400"
-        >
-          Log in
+        <Link to="/login" className="mt-3 inline-block">
+          <Button>Log in</Button>
         </Link>
       </div>
     );
@@ -45,11 +43,8 @@ export function CheckoutPage() {
     return (
       <div className="mx-auto max-w-lg px-4 py-20 text-center">
         <p className="text-parchment/70">Verify your age and delivery location before checking out.</p>
-        <Link
-          to="/eligibility"
-          className="mt-3 inline-block rounded-lg bg-brass-500 px-4 py-2 text-sm font-medium text-ink-950 hover:bg-brass-400"
-        >
-          Verify eligibility
+        <Link to="/eligibility" className="mt-3 inline-block">
+          <Button>Verify eligibility</Button>
         </Link>
       </div>
     );
@@ -114,13 +109,9 @@ export function CheckoutPage() {
           </p>
         )}
 
-        <button
-          type="submit"
-          disabled={busy}
-          className="mt-2 rounded-lg bg-brass-500 py-3 text-sm font-medium text-ink-950 hover:bg-brass-400 disabled:opacity-50"
-        >
+        <Button type="submit" loading={busy} className="mt-2 py-3">
           {busy ? "Placing order…" : "Place order"}
-        </button>
+        </Button>
       </form>
     </div>
   );

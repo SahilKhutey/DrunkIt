@@ -5,6 +5,8 @@ import type { ListingCard as ListingCardType } from "../types/api";
 import { PriceDisplay } from "../components/PriceDisplay";
 import { AvailabilityBadge } from "../components/AvailabilityBadge";
 import { Seal } from "../components/Seal";
+import { Button } from "../components/ui/Button";
+import { useToast } from "../components/ui/Toast";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 
@@ -13,9 +15,9 @@ export function ProductDetailPage() {
   const [listing, setListing] = useState<ListingCardType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
   const { addItem } = useCart();
   const { me } = useAuth();
+  const { showToast } = useToast();
 
   useEffect(() => {
     if (!listingId) return;
@@ -47,8 +49,10 @@ export function ProductDetailPage() {
   function handleAdd() {
     if (!listing) return;
     const result = addItem(listing);
-    setToast(result.ok ? `Added ${listing.name}` : result.reason ?? "Couldn't add this item.");
-    setTimeout(() => setToast(null), 3000);
+    showToast(
+      result.ok ? `Added ${listing.name}` : result.reason ?? "Couldn't add this item.",
+      result.ok ? "success" : "error"
+    );
   }
 
   const disabled = !listing.can_add_to_cart;
@@ -116,25 +120,11 @@ export function ProductDetailPage() {
             </p>
           )}
 
-          <button
-            onClick={handleAdd}
-            disabled={disabled}
-            className={`rounded-lg py-3 text-sm font-medium transition-colors ${
-              disabled
-                ? "bg-ink-700 text-parchment/40 cursor-not-allowed"
-                : "bg-brass-500 text-ink-950 hover:bg-brass-400"
-            }`}
-          >
+          <Button onClick={handleAdd} disabled={disabled} className="py-3">
             Add to cart
-          </button>
+          </Button>
         </div>
       </div>
-
-      {toast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 rounded-lg bg-ink-700 px-4 py-2 text-sm text-parchment shadow-seal">
-          {toast}
-        </div>
-      )}
     </div>
   );
 }

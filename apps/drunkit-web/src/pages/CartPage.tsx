@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
+import { Button } from "../components/ui/Button";
 
 const DELIVERY_FEE = 25; // matches the backend's flat placeholder fee — see order/service.py
 
@@ -12,11 +13,8 @@ export function CartPage() {
       <div className="mx-auto flex max-w-lg flex-col items-center gap-3 px-4 py-20 text-center">
         <p className="font-display text-xl text-parchment">Your cart is empty</p>
         <p className="text-sm text-parchment/50">Add something from the shelf to get started.</p>
-        <Link
-          to="/"
-          className="mt-2 rounded-lg bg-brass-500 px-4 py-2 text-sm font-medium text-ink-950 hover:bg-brass-400"
-        >
-          Browse products
+        <Link to="/">
+          <Button className="mt-2">Browse products</Button>
         </Link>
       </div>
     );
@@ -79,12 +77,9 @@ export function CartPage() {
         </div>
       </div>
 
-      <button
-        onClick={() => navigate("/checkout")}
-        className="mt-4 w-full rounded-lg bg-brass-500 py-3 text-sm font-medium text-ink-950 hover:bg-brass-400"
-      >
+      <Button onClick={() => navigate("/checkout")} className="mt-4 w-full py-3">
         Proceed to checkout
-      </button>
+      </Button>
     </div>
   );
 }

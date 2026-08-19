@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { api, setToken } from "../api/client";
+import { api, setToken, ApiRequestError } from "../api/client";
 import { useAuth } from "../context/AuthContext";
-import { ApiRequestError } from "../api/client";
+import { Input } from "../components/ui/Input";
+import { Button } from "../components/ui/Button";
 
 export function LoginPage() {
   const [phone, setPhone] = useState("");
@@ -51,18 +52,13 @@ export function LoginPage() {
         {stage === "phone" ? "Log in" : "Enter the code"}
       </h1>
       <p className="mt-1 text-sm text-parchment/50">
-        {stage === "phone"
-          ? "We'll text you a 6-digit code to verify it's you."
-          : `Sent to ${phone}.`}
+        {stage === "phone" ? "We'll text you a 6-digit code to verify it's you." : `Sent to ${phone}.`}
       </p>
 
       {stage === "phone" ? (
         <form onSubmit={handleRequestOtp} className="mt-6 flex flex-col gap-3">
-          <label className="text-xs text-parchment/50" htmlFor="phone">
-            Phone number
-          </label>
-          <input
-            id="phone"
+          <Input
+            label="Phone number"
             type="tel"
             required
             minLength={8}
@@ -70,24 +66,17 @@ export function LoginPage() {
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             placeholder="9XXXXXXXXX"
-            className="rounded-lg border border-ink-600 bg-ink-800 px-3 py-2 font-mono text-parchment outline-none focus:border-brass-500"
+            className="font-mono"
+            error={error ?? undefined}
           />
-          {error && <p className="text-sm text-rust-400">{error}</p>}
-          <button
-            type="submit"
-            disabled={busy}
-            className="mt-2 rounded-lg bg-brass-500 py-2.5 text-sm font-medium text-ink-950 hover:bg-brass-400 disabled:opacity-50"
-          >
+          <Button type="submit" loading={busy} className="mt-2">
             {busy ? "Sending…" : "Send code"}
-          </button>
+          </Button>
         </form>
       ) : (
         <form onSubmit={handleVerifyOtp} className="mt-6 flex flex-col gap-3">
-          <label className="text-xs text-parchment/50" htmlFor="code">
-            6-digit code
-          </label>
-          <input
-            id="code"
+          <Input
+            label="6-digit code"
             type="text"
             inputMode="numeric"
             required
@@ -96,7 +85,8 @@ export function LoginPage() {
             value={code}
             onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
             placeholder="000000"
-            className="rounded-lg border border-ink-600 bg-ink-800 px-3 py-2 font-mono text-lg tracking-[0.3em] text-parchment outline-none focus:border-brass-500"
+            className="font-mono text-lg tracking-[0.3em]"
+            error={error ?? undefined}
           />
           {devOtp && (
             <p className="rounded-lg border border-brass-600/30 bg-brass-500/5 px-3 py-2 text-xs text-brass-400">
@@ -104,21 +94,12 @@ export function LoginPage() {
               banner disappears once a real SMS provider is wired in.
             </p>
           )}
-          {error && <p className="text-sm text-rust-400">{error}</p>}
-          <button
-            type="submit"
-            disabled={busy}
-            className="mt-2 rounded-lg bg-brass-500 py-2.5 text-sm font-medium text-ink-950 hover:bg-brass-400 disabled:opacity-50"
-          >
+          <Button type="submit" loading={busy} className="mt-2">
             {busy ? "Verifying…" : "Verify and continue"}
-          </button>
-          <button
-            type="button"
-            onClick={() => setStage("phone")}
-            className="text-xs text-parchment/40 hover:text-parchment/70"
-          >
+          </Button>
+          <Button type="button" variant="ghost" size="sm" onClick={() => setStage("phone")}>
             Use a different number
-          </button>
+          </Button>
         </form>
       )}
     </div>

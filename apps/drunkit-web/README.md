@@ -23,35 +23,71 @@ brightness and the generic AI-default looks (cream+terracotta, near-black
 
 - **Palette**: bottle-glass ink green as the base surface, brass/excise-seal
   gold as the primary accent, aged-copper for price emphasis, muted sage for
-  success states.
+  success states, rust for failure states.
 - **Type**: Fraunces (display, used with restraint) paired with Public Sans
   (body) and IBM Plex Mono (prices, timestamps, data — tabular figures).
 - **Signature element**: the hexagonal `Seal` component (`src/components/Seal.tsx`),
   styled after an excise duty stamp pressed into a bottle label. Used
   consistently anywhere the platform is vouching for something — verified
-  seller, verified listing — instead of a generic checkmark.
+  seller, age-verified account, or (in its rust tone) a failure/blocked
+  state — instead of a generic checkmark or unrelated icon per case.
 
-## What talks to what
+## Design system (`src/components/ui/`)
+
+A small set of primitives every page is expected to use, rather than each
+page reinventing its own button/input/toast:
+
+| Component | Purpose |
+|---|---|
+| `Button` | 4 variants (primary/secondary/ghost/danger), loading state |
+| `Input`, `Select` | Labeled form controls with a shared error-state treatment |
+| `Badge` | Status pills (used for eligibility state on the Account page) |
+| `Modal` | Dialog primitive (Escape-to-close, click-outside-to-close) |
+| `SkeletonBlock`, `SkeletonCardGrid` | Loading placeholders |
+| `EmptyState` | Consistent "nothing here" treatment |
+| `ToastProvider` / `useToast()` | Centralized notifications — replaced the local `useState` + `setTimeout` toast pattern that used to be duplicated in HomePage and ProductDetailPage |
+
+Import from the barrel: `import { Button, Input } from "../components/ui"`.
+
+`src/components/InfoPage.tsx` is a page-level template (eyebrow/title/intro/
+sections) rather than a UI primitive — it powers both `AboutPage` and
+`ResponsibleDrinkingPage`, so a third informational page is a content change,
+not a new layout.
+
+## Pages
 
 Every page reads from the real backend — there is no mocked or hardcoded
 product data:
 
-| Page | Backend endpoints |
-|---|---|
-| Login | `POST /v1/auth/otp/request`, `POST /v1/auth/otp/verify` |
-| Eligibility | `POST /v1/eligibility/verify` |
-| Home / product grid | `GET /v1/listings` |
-| Product detail | `GET /v1/listings/{id}` |
-| Cart | client-side only (`CartContext`) until checkout |
-| Checkout | `POST /v1/orders` |
-| Order tracking | `GET /v1/orders/{id}`, `GET /v1/orders/{id}/delivery` (polled) |
-| Order history | `GET /v1/orders` |
+| Page | Route | Backend endpoints |
+|---|---|---|
+| Home | `/` | `GET /v1/listings` |
+| Search | `/search` | `GET /v1/listings` (filtered client-side — see note below) |
+| Product detail | `/product/:listingId` | `GET /v1/listings/{id}` |
+| Login | `/login` | `POST /v1/auth/otp/request`, `POST /v1/auth/otp/verify` |
+| Eligibility | `/eligibility` | `POST /v1/eligibility/verify` |
+| Account | `/account` | `GET /v1/me` (via AuthContext) |
+| Cart | `/cart` | client-side only (`CartContext`) until checkout |
+| Checkout | `/checkout` | `POST /v1/orders` |
+| Order tracking | `/orders/:orderId` | `GET /v1/orders/{id}`, `GET /v1/orders/{id}/delivery` (polled) |
+| Order history | `/orders` | `GET /v1/orders` |
+| About | `/about` | static content |
+| Responsible drinking | `/responsible-drinking` | static content |
+| 404 | any unmatched route | — |
+
+An `ErrorBoundary` (`src/components/ErrorBoundary.tsx`) wraps the whole app
+and shows a distinct "something broke" page for render-time errors, separate
+from the 404 "nothing here" page.
 
 ## Known placeholders (see inline comments at each site)
 
 - **Location**: a fixed lat/lng (Mumbai) stands in for real geolocation/address
   autocomplete — the backend's serviceability query already takes lat/lng,
   this just needs a real location source.
+- **Search**: `SearchPage` filters the already-loaded listings client-side —
+  there's no backend text-search endpoint yet. Fine at MVP catalog size;
+  swap in a real `GET /v1/search/listings?q=` once the catalog is large
+  enough that shipping the whole thing to the client stops being reasonable.
 - **Delivery fee shown pre-checkout**: mirrors the backend's flat ₹25
   placeholder (`app/domain/order/service.py`) — replace both together when
   real delivery pricing lands.
@@ -60,6 +96,9 @@ product data:
   disappears automatically once the backend's `environment` setting is
   `production` and a real provider is connected — see the backend's
   `app/domain/auth/service.py`.
+- **About / Responsible Drinking copy**: descriptive marketing/informational
+  text, not legal terms — actual Terms of Service / Privacy Policy content
+  should come from counsel, not this codebase.
 
 ## Known dependency advisories
 

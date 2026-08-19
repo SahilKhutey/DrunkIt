@@ -3,6 +3,9 @@ import { api, ApiRequestError } from "../api/client";
 import type { ListingCard as ListingCardType } from "../types/api";
 import { ProductCard } from "../components/ProductCard";
 import { EligibilityBanner } from "../components/EligibilityBanner";
+import { SkeletonCardGrid } from "../components/ui/Skeleton";
+import { EmptyState } from "../components/ui/EmptyState";
+import { useToast } from "../components/ui/Toast";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 
@@ -17,11 +20,11 @@ const CATEGORIES = ["all", "beer", "wine", "whisky", "rum", "vodka"];
 export function HomePage() {
   const { me, deliveryState } = useAuth();
   const { addItem } = useCart();
+  const { showToast } = useToast();
   const [listings, setListings] = useState<ListingCardType[]>([]);
   const [category, setCategory] = useState("all");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
     if (!deliveryState) {
@@ -39,13 +42,10 @@ export function HomePage() {
 
   function handleAdd(listing: ListingCardType) {
     const result = addItem(listing);
-    if (!result.ok) {
-      setToast(result.reason ?? "Couldn't add this item.");
-      setTimeout(() => setToast(null), 3500);
-    } else {
-      setToast(`Added ${listing.name}`);
-      setTimeout(() => setToast(null), 1500);
-    }
+    showToast(
+      result.ok ? `Added ${listing.name}` : result.reason ?? "Couldn't add this item.",
+      result.ok ? "success" : "error"
+    );
   }
 
   return (
@@ -83,11 +83,9 @@ export function HomePage() {
             ))}
           </div>
 
-          {loading && <SkeletonGrid />}
+          {loading && <SkeletonCardGrid />}
 
-          {!loading && error && (
-            <EmptyState title="Couldn't load products" body={error} />
-          )}
+          {!loading && error && <EmptyState title="Couldn't load products" body={error} />}
 
           {!loading && !error && listings.length === 0 && (
             <EmptyState
@@ -105,38 +103,6 @@ export function HomePage() {
           )}
         </>
       )}
-
-      {toast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 rounded-lg bg-ink-700 px-4 py-2 text-sm text-parchment shadow-seal">
-          {toast}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function SkeletonGrid() {
-  return (
-    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-      {Array.from({ length: 8 }).map((_, i) => (
-        <div key={i} className="animate-pulse overflow-hidden rounded-xl border border-ink-700">
-          <div className="aspect-square bg-ink-800" />
-          <div className="space-y-2 p-3">
-            <div className="h-3 w-2/3 rounded bg-ink-800" />
-            <div className="h-4 w-full rounded bg-ink-800" />
-            <div className="h-8 w-full rounded bg-ink-800" />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function EmptyState({ title, body }: { title: string; body: string }) {
-  return (
-    <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-ink-700 py-16 text-center">
-      <p className="font-display text-lg text-parchment">{title}</p>
-      <p className="max-w-sm text-sm text-parchment/50">{body}</p>
     </div>
   );
 }

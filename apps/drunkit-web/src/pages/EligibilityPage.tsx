@@ -2,6 +2,9 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, ApiRequestError } from "../api/client";
 import { useAuth } from "../context/AuthContext";
+import { Select } from "../components/ui/Select";
+import { Input } from "../components/ui/Input";
+import { Button } from "../components/ui/Button";
 
 // Placeholder list — the platform only actually serves whichever
 // states are set to allow_delivery: true in the backend's
@@ -55,16 +58,7 @@ export function EligibilityPage() {
       </p>
 
       <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-3">
-        <label className="text-xs text-parchment/50" htmlFor="state">
-          Delivery state
-        </label>
-        <select
-          id="state"
-          required
-          value={state}
-          onChange={(e) => setState(e.target.value)}
-          className="rounded-lg border border-ink-600 bg-ink-800 px-3 py-2 text-parchment outline-none focus:border-brass-500"
-        >
+        <Select label="Delivery state" required value={state} onChange={(e) => setState(e.target.value)}>
           <option value="" disabled>
             Select your state
           </option>
@@ -73,18 +67,15 @@ export function EligibilityPage() {
               {s}
             </option>
           ))}
-        </select>
+        </Select>
 
-        <label className="mt-2 text-xs text-parchment/50" htmlFor="dob">
-          Date of birth
-        </label>
-        <input
-          id="dob"
+        <Input
+          label="Date of birth"
           type="date"
           required
           value={dob}
           onChange={(e) => setDob(e.target.value)}
-          className="rounded-lg border border-ink-600 bg-ink-800 px-3 py-2 font-mono text-parchment outline-none focus:border-brass-500"
+          className="font-mono"
         />
 
         {error && (
@@ -93,13 +84,9 @@ export function EligibilityPage() {
           </p>
         )}
 
-        <button
-          type="submit"
-          disabled={busy}
-          className="mt-2 rounded-lg bg-brass-500 py-2.5 text-sm font-medium text-ink-950 hover:bg-brass-400 disabled:opacity-50"
-        >
+        <Button type="submit" loading={busy} className="mt-2">
           {busy ? "Checking…" : "Verify"}
-        </button>
+        </Button>
       </form>
     </div>
   );
