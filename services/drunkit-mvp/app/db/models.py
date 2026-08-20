@@ -342,6 +342,7 @@ class Order(Base):
 
     items: Mapped[list["OrderItem"]] = relationship(back_populates="order")
     delivery: Mapped["Delivery | None"] = relationship(back_populates="order", uselist=False)
+    store: Mapped["Store"] = relationship()
 
 
 class OrderItem(Base):
