@@ -6,6 +6,8 @@
   "packageManager": "pnpm@9.1.0",
   "scripts": {
     "dev": "turbo dev",
+    "dev:web": "pnpm --filter drunkit-consumer-web dev",
+    "dev:staff": "pnpm --filter drunkit-staff-console dev",
     "build": "turbo build",
     "test": "turbo test",
     "lint": "turbo lint",

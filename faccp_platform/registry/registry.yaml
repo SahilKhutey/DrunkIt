@@ -196,3 +196,38 @@ services:
     dependencies:
       - postgres
       - redis
+
+  drunkit-mvp:
+    name: drunkit-mvp
+    type: backend
+    runtime: python
+    host: localhost
+    port: 8025
+    health:
+      path: /health
+    readiness:
+      path: /health
+    dependencies:
+      - postgres
+
+  drunkit-web:
+    name: drunkit-web
+    type: frontend
+    runtime: node
+    host: localhost
+    port: 5173
+    health:
+      path: /
+    dependencies:
+      - drunkit-mvp
+
+  drunkit-staff:
+    name: drunkit-staff
+    type: frontend
+    runtime: node
+    host: localhost
+    port: 5174
+    health:
+      path: /
+    dependencies:
+      - drunkit-mvp

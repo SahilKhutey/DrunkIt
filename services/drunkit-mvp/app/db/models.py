@@ -262,6 +262,48 @@ class Session(Base):
 
 
 # ---------------------------------------------------------------------------
+# Staff auth (platform admins + retailer staff). Deliberately a separate
+# identity space from Consumer/Session above — a consumer session token
+# must never be usable against admin endpoints, and vice versa. Email +
+# password (not phone+OTP) because this is a back-office login, not a
+# consumer-facing one.
+# ---------------------------------------------------------------------------
+
+class StaffRole(str, enum.Enum):
+    PLATFORM_ADMIN = "PLATFORM_ADMIN"   # full access across all retailers
+    RETAILER_STAFF = "RETAILER_STAFF"   # scoped to retailer_id only
+
+
+class StaffUser(Base):
+    __tablename__ = "staff_users"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=gen_id)
+    email: Mapped[str] = mapped_column(String, nullable=False, unique=True, index=True)
+    password_hash: Mapped[str] = mapped_column(String, nullable=False)
+    role: Mapped[StaffRole] = mapped_column(Enum(StaffRole), nullable=False)
+    # Set for RETAILER_STAFF, null for PLATFORM_ADMIN. Every retailer-scoped
+    # endpoint checks this against the resource's retailer_id — see
+    # app/api/deps.py's require_retailer_access().
+    retailer_id: Mapped[str | None] = mapped_column(ForeignKey("retailers.id"), nullable=True)
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+    retailer: Mapped["Retailer | None"] = relationship()
+
+
+class StaffSession(Base):
+    __tablename__ = "staff_sessions"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    staff_user_id: Mapped[str] = mapped_column(ForeignKey("staff_users.id"), nullable=False)
+    revoked: Mapped[bool] = mapped_column(Boolean, default=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+    staff_user: Mapped["StaffUser"] = relationship()
+
+
+# ---------------------------------------------------------------------------
 # Order
 # ---------------------------------------------------------------------------
 

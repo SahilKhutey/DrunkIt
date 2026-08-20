@@ -22,11 +22,18 @@ from app.db.models import (
     Product,
     Retailer,
     RetailerStatus,
+    StaffRole,
     Store,
 )
 from app.db.session import Base, SessionLocal, engine
+from app.domain.staff_auth.service import StaffAuthError, create_staff_user
 
 POLICY_FILE = Path(__file__).resolve().parents[1] / "policies" / "jurisdictions.json"
+
+DEMO_ADMIN_EMAIL = "admin@demo.local"
+DEMO_ADMIN_PWD = "demo-admin-password-123"
+DEMO_RETAILER_STAFF_EMAIL = "retailer@demo.local"
+DEMO_RETAILER_STAFF_PWD = "demo-retailer-password-123"
 
 
 def ensure_demo_jurisdiction() -> None:
@@ -85,6 +92,31 @@ def seed() -> None:
             db.add(Listing(store_id=store.id, product_id=product.id, status=ListingStatus.ACTIVE))
 
         db.commit()
+
+        # Demo staff accounts — dev/test convenience only. Real
+        # deployments should use scripts/create_admin.py for the first
+        # admin, then have that admin create retailer staff via
+        # POST /v1/admin/retailers/{id}/staff, not hardcoded credentials.
+        try:
+            create_staff_user(
+                db, email=DEMO_ADMIN_EMAIL, password=DEMO_ADMIN_PWD, role=StaffRole.PLATFORM_ADMIN
+            )
+            print(f"Demo platform admin: {DEMO_ADMIN_EMAIL} / {DEMO_ADMIN_PWD}")
+        except StaffAuthError:
+            print(f"Demo platform admin already exists: {DEMO_ADMIN_EMAIL}")
+
+        try:
+            create_staff_user(
+                db,
+                email=DEMO_RETAILER_STAFF_EMAIL,
+                password=DEMO_RETAILER_STAFF_PWD,
+                role=StaffRole.RETAILER_STAFF,
+                retailer_id=retailer.id,
+            )
+            print(f"Demo retailer staff: {DEMO_RETAILER_STAFF_EMAIL} / {DEMO_RETAILER_STAFF_PWD}")
+        except StaffAuthError:
+            print(f"Demo retailer staff already exists: {DEMO_RETAILER_STAFF_EMAIL}")
+
         print(f"Seeded retailer={retailer.id} store={store.id}")
         print("Try: GET /v1/listings?lat=19.076&lng=72.8777&state=DEMO_STATE")
     finally:

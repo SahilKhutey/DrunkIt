@@ -6,6 +6,12 @@ SQLite database and an isolated jurisdiction policy file per test run
 Auth flow used throughout: request an OTP (dev mode returns the code
 directly), verify it, use the returned bearer token for every
 consumer-scoped call. This exercises the same path a real client uses.
+
+Admin/staff auth: a PLATFORM_ADMIN is bootstrapped directly via the DB
+in the client fixture (mirroring scripts/create_admin.py, since there
+is no public "create admin" API endpoint by design), then every admin
+call logs in through the real /v1/admin/auth/login endpoint like a
+real client would.
 """
 import json
 
@@ -15,13 +21,19 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from app.db import models
 from app.db.session import Base, get_db
+
+ADMIN_EMAIL = "admin@test.local"
+ADMIN_PWD = "test-admin-password-123"
 
 
 @pytest.fixture()
 def client(tmp_path, monkeypatch):
     import app.domain.eligibility.policy_store as policy_store
     from app.domain.eligibility.policy_store import clear_cache
+    from app.domain.staff_auth.service import create_staff_user
+    from app.db import models as db_models
     from app.main import app
 
     policy_file = tmp_path / "jurisdictions.json"
@@ -43,6 +55,15 @@ def client(tmp_path, monkeypatch):
     )
     TestingSessionLocal = sessionmaker(bind=engine)
     Base.metadata.create_all(bind=engine)
+
+    bootstrap_db = TestingSessionLocal()
+    create_staff_user(
+        bootstrap_db,
+        email=ADMIN_EMAIL,
+        password=ADMIN_PWD,
+        role=db_models.StaffRole.PLATFORM_ADMIN,
+    )
+    bootstrap_db.close()
 
     def override_get_db():
         db = TestingSessionLocal()
@@ -69,9 +90,17 @@ def _login(client, phone: str) -> dict:
     return {"Authorization": f"Bearer {token}"}
 
 
+def _admin_headers(client) -> dict:
+    resp = client.post("/v1/admin/auth/login", json={"email": ADMIN_EMAIL, "password": ADMIN_PWD})
+    assert resp.status_code == 200, resp.text
+    return {"Authorization": f"Bearer {resp.json()['access_token']}"}
+
+
 def _seed_catalog(client):
-    r = client.post("/v1/admin/retailers", json={"name": "Test Retailer"}).json()
-    client.post(f"/v1/admin/retailers/{r['retailer_id']}/verify")
+    admin = _admin_headers(client)
+
+    r = client.post("/v1/admin/retailers", json={"name": "Test Retailer"}, headers=admin).json()
+    client.post(f"/v1/admin/retailers/{r['retailer_id']}/verify", headers=admin)
 
     s = client.post(
         "/v1/admin/stores",
@@ -83,11 +112,13 @@ def _seed_catalog(client):
             "latitude": 19.0,
             "longitude": 72.0,
         },
+        headers=admin,
     ).json()
 
     p = client.post(
         "/v1/admin/products",
         json={"name": "Test Beer", "brand": "TestBrand", "category": "beer", "pack_size": "650 ml"},
+        headers=admin,
     ).json()
 
     client.post(
@@ -99,8 +130,9 @@ def _seed_catalog(client):
             "selling_price": 180,
             "quantity": 10,
         },
+        headers=admin,
     )
-    return s["store_id"], p["product_id"]
+    return s["store_id"], p["product_id"], r["retailer_id"]
 
 
 def test_otp_login_issues_working_session(client):
@@ -139,7 +171,7 @@ def test_client_cannot_impersonate_another_consumer_via_header(client):
     headers_a = _login(client, "9000000001")
     headers_b = _login(client, "9000000002")
 
-    store_id, product_id = _seed_catalog(client)
+    store_id, product_id, _retailer_id = _seed_catalog(client)
     client.post("/v1/eligibility/verify", headers=headers_a,
                 json={"state": "TESTLAND", "date_of_birth": "1990-01-01"})
 
@@ -160,7 +192,7 @@ def test_client_cannot_impersonate_another_consumer_via_header(client):
 
 
 def test_listing_visible_but_locked_before_eligibility(client):
-    store_id, product_id = _seed_catalog(client)
+    store_id, product_id, _retailer_id = _seed_catalog(client)
     headers = _login(client, "9000000010")
 
     resp = client.get(
@@ -174,14 +206,14 @@ def test_listing_visible_but_locked_before_eligibility(client):
 
 
 def test_anonymous_browsing_works_without_auth(client):
-    store_id, product_id = _seed_catalog(client)
+    store_id, product_id, _retailer_id = _seed_catalog(client)
     resp = client.get("/v1/listings", params={"lat": 19.0, "lng": 72.0, "state": "TESTLAND"})
     assert resp.status_code == 200
     assert len(resp.json()) == 1
 
 
 def test_underage_checkout_blocked_server_side(client):
-    store_id, product_id = _seed_catalog(client)
+    store_id, product_id, _retailer_id = _seed_catalog(client)
     headers = _login(client, "9000000011")
     client.post("/v1/eligibility/verify", headers=headers,
                 json={"state": "TESTLAND", "date_of_birth": "2010-01-01"})
@@ -202,7 +234,7 @@ def test_underage_checkout_blocked_server_side(client):
 
 
 def test_eligible_adult_can_order_and_stock_decrements(client):
-    store_id, product_id = _seed_catalog(client)
+    store_id, product_id, _retailer_id = _seed_catalog(client)
     headers = _login(client, "9000000012")
     client.post("/v1/eligibility/verify", headers=headers,
                 json={"state": "TESTLAND", "date_of_birth": "1990-01-01"})
@@ -230,7 +262,7 @@ def test_eligible_adult_can_order_and_stock_decrements(client):
 
 
 def test_order_over_stock_rejected(client):
-    store_id, product_id = _seed_catalog(client)
+    store_id, product_id, _retailer_id = _seed_catalog(client)
     headers = _login(client, "9000000013")
     client.post("/v1/eligibility/verify", headers=headers,
                 json={"state": "TESTLAND", "date_of_birth": "1990-01-01"})
@@ -251,7 +283,8 @@ def test_order_over_stock_rejected(client):
 
 
 def test_delivery_cannot_skip_handoff_verification(client):
-    store_id, product_id = _seed_catalog(client)
+    store_id, product_id, _retailer_id = _seed_catalog(client)
+    admin = _admin_headers(client)
     headers = _login(client, "9000000014")
     client.post("/v1/eligibility/verify", headers=headers,
                 json={"state": "TESTLAND", "date_of_birth": "1990-01-01"})
@@ -270,19 +303,32 @@ def test_delivery_cannot_skip_handoff_verification(client):
 
     delivery = client.get(f"/v1/orders/{order['id']}/delivery", headers=headers).json()
 
-    resp = client.post(f"/v1/admin/deliveries/{delivery['id']}/transition", json={"new_status": "DELIVERED"})
+    resp = client.post(
+        f"/v1/admin/deliveries/{delivery['id']}/transition",
+        json={"new_status": "DELIVERED"},
+        headers=admin,
+    )
     assert resp.status_code == 422
     assert resp.json()["detail"]["code"] == "INVALID_TRANSITION"
 
     client.post(
         f"/v1/admin/deliveries/{delivery['id']}/assign",
         params={"driver_name": "Test Driver", "driver_phone": "9111111111"},
+        headers=admin,
     )
     for status in ["PICKED_UP", "IN_TRANSIT", "ARRIVING", "HANDOFF_VERIFICATION"]:
-        r = client.post(f"/v1/admin/deliveries/{delivery['id']}/transition", json={"new_status": status})
+        r = client.post(
+            f"/v1/admin/deliveries/{delivery['id']}/transition",
+            json={"new_status": status},
+            headers=admin,
+        )
         assert r.status_code == 200
 
-    final = client.post(f"/v1/admin/deliveries/{delivery['id']}/handoff", json={"verified": True})
+    final = client.post(
+        f"/v1/admin/deliveries/{delivery['id']}/handoff",
+        json={"verified": True},
+        headers=admin,
+    )
     assert final.status_code == 200
     assert final.json()["status"] == "DELIVERED"
 

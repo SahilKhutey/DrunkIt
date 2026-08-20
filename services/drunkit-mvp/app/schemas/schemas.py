@@ -31,6 +31,38 @@ class OTPVerifyResponse(BaseModel):
     consumer_id: str
 
 
+# ---- Staff auth (admin/retailer) ----
+
+class StaffLoginRequest(BaseModel):
+    email: str = Field(..., min_length=3, max_length=254)
+    password: str = Field(..., min_length=8, max_length=128)
+
+
+class StaffLoginResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    staff_id: str
+    role: str
+    retailer_id: Optional[str] = None
+
+
+class StaffMeResponse(BaseModel):
+    staff_id: str
+    email: str
+    role: str
+    retailer_id: Optional[str] = None
+
+
+class RetailerStaffCreate(BaseModel):
+    """
+    Used by a platform admin to create a login for a retailer's own
+    staff — there is no public self-registration endpoint for staff
+    accounts, on purpose.
+    """
+    email: str = Field(..., min_length=3, max_length=254)
+    password: str = Field(..., min_length=8, max_length=128)
+
+
 # ---- Consumer / Eligibility ----
 
 class MeResponse(BaseModel):
@@ -179,4 +211,87 @@ class ListingCreate(BaseModel):
     mrp: float
     selling_price: float
     quantity: int = 0
+
+
+# ---- Admin: read/list views (dashboard) ----
+
+class RetailerView(BaseModel):
+    id: str
+    name: str
+    license_number: Optional[str] = None
+    status: str
+    created_at: str
+
+
+class StoreView(BaseModel):
+    id: str
+    retailer_id: str
+    retailer_name: str
+    name: str
+    state: str
+    city: str
+    latitude: float
+    longitude: float
+    is_open: bool
+    active: bool
+
+
+class ProductView(BaseModel):
+    id: str
+    name: str
+    brand: str
+    category: str
+    variant: Optional[str] = None
+    pack_size: str
+    active: bool
+
+
+class AdminListingView(BaseModel):
+    listing_id: str
+    store_id: str
+    product_id: str
+    product_name: str
+    brand: str
+    pack_size: str
+    status: str
+    mrp: Optional[float] = None
+    selling_price: Optional[float] = None
+    quantity: Optional[int] = None
+
+
+class AdminOrderItemView(BaseModel):
+    product_name: str
+    quantity: int
+    unit_price: float
+
+
+class AdminOrderView(BaseModel):
+    id: str
+    status: str
+    total: float
+    created_at: str
+    delivery_address: str
+    items: list[AdminOrderItemView]
+
+
+class AdminDeliveryView(BaseModel):
+    id: str
+    order_id: str
+    store_id: str
+    store_name: str
+    status: str
+    driver_name: Optional[str] = None
+    driver_phone: Optional[str] = None
+    eta_min_minutes: Optional[int] = None
+    eta_max_minutes: Optional[int] = None
+    created_at: str
+
+
+class StaffAccountView(BaseModel):
+    id: str
+    email: str
+    role: str
+    retailer_id: Optional[str] = None
+    active: bool
+    created_at: str
 

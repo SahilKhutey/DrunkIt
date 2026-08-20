@@ -30,8 +30,17 @@ platform-health: ## Check platform health
 identity: ## Start identity service baseline
 	python -m uvicorn services.identity.app.main:app --host 0.0.0.0 --port 8001
 
-drunkit-mvp: ## Start drunkit-mvp service
-	cd services/drunkit-mvp && python -m uvicorn app.main:app --host 0.0.0.0 --port 8025 --reload
+drunkit-mvp: ## Start drunkit-mvp backend API (:8000)
+	cd services/drunkit-mvp && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+drunkit-web: ## Start drunkit-web consumer frontend (:5173)
+	pnpm --filter drunkit-consumer-web dev
+
+drunkit-staff: ## Start drunkit-staff console (:5174)
+	pnpm --filter drunkit-staff-console dev
+
+drunkit-dev: ## Start full DrunkIt stack (MVP + Web + Staff)
+	docker compose --profile core up
 
 dev-infra: ## Start infrastructure only
 	docker compose up -d postgres redis kafka minio mailhog otel-collector prometheus grafana jaeger loki

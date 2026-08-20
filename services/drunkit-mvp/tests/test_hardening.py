@@ -1,30 +1,9 @@
 """
-Tests for production-hardening behavior integrated into the monorepo:
-  - X-Request-ID correlation middleware (echoes / generates IDs)
-  - Per-phone OTP cooldown (independent of IP-based rate limiter)
-
-These tests run against the FastAPI app using an isolated in-memory
-SQLite database, matching the drunkit-mvp1 harness design.
-Rate limiting is disabled globally via conftest.py.
+Tests for production-hardening behavior: the per-phone OTP cooldown
+(independent of the IP-based rate limiter, which is disabled in tests
+— see conftest.py) and the request-ID correlation middleware.
 """
 import json
-import os
-import sys
-
-root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
-drunkit_mvp_path = os.path.join(root_dir, "services", "drunkit-mvp")
-
-
-def _setup_mvp_env():
-    sys.path = [p for p in sys.path if not ("services" in p and p != drunkit_mvp_path)]
-    if drunkit_mvp_path not in sys.path:
-        sys.path.insert(0, drunkit_mvp_path)
-    for mod_name in list(sys.modules.keys()):
-        if mod_name == "app" or mod_name.startswith("app."):
-            del sys.modules[mod_name]
-
-
-_setup_mvp_env()
 
 import pytest
 from fastapi.testclient import TestClient
@@ -32,20 +11,18 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from app.db import models
+from app.db.session import Base, get_db
+
 
 @pytest.fixture()
 def client(tmp_path, monkeypatch):
-    _setup_mvp_env()
-
     import app.domain.eligibility.policy_store as policy_store
     from app.domain.eligibility.policy_store import clear_cache
     from app.main import app
-    from app.db.session import Base, get_db
 
     policy_file = tmp_path / "jurisdictions.json"
-    policy_file.write_text(
-        json.dumps({"default": {"allow_delivery": False, "minimum_age": None}, "states": {}})
-    )
+    policy_file.write_text(json.dumps({"default": {"allow_delivery": False, "minimum_age": None}, "states": {}}))
     monkeypatch.setattr(policy_store, "POLICY_FILE", policy_file)
     clear_cache()
 

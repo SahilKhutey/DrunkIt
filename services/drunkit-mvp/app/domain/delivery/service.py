@@ -18,9 +18,11 @@ from __future__ import annotations
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
+from app.core.logging import get_logger
 from app.db import models
 
 settings = get_settings()
+log = get_logger(__name__)
 
 _ALLOWED_TRANSITIONS: dict[models.DeliveryStatus, set[models.DeliveryStatus]] = {
     models.DeliveryStatus.REQUESTED: {models.DeliveryStatus.ASSIGNED, models.DeliveryStatus.CANCELLED},
@@ -70,11 +72,18 @@ def transition(
 ) -> models.Delivery:
     allowed = _ALLOWED_TRANSITIONS.get(delivery.status, set())
     if new_status not in allowed:
+        log.warning(
+            "delivery_invalid_transition_blocked",
+            delivery_id=delivery.id,
+            from_status=delivery.status.value,
+            to_status=new_status.value,
+        )
         raise DeliveryError(
             "INVALID_TRANSITION",
             f"Cannot move delivery from {delivery.status.value} to {new_status.value}.",
         )
 
+    from_status = delivery.status.value
     delivery.status = new_status
     if new_status == models.DeliveryStatus.DELIVERED:
         delivery.handoff_verified = True
@@ -100,6 +109,14 @@ def transition(
 
     db.commit()
     db.refresh(delivery)
+
+    log.info(
+        "delivery_transitioned",
+        delivery_id=delivery.id,
+        order_id=delivery.order_id,
+        from_status=from_status,
+        to_status=new_status.value,
+    )
     return delivery
 
 
@@ -123,6 +140,8 @@ def mark_handoff_verified(
             "NOT_AT_HANDOFF_STAGE",
             f"Delivery must be in HANDOFF_VERIFICATION, currently {delivery.status.value}.",
         )
+
+    log.info("delivery_handoff_decision", delivery_id=delivery.id, verified=verified)
 
     if not verified:
         return transition(db, delivery=delivery, new_status=models.DeliveryStatus.FAILED, detail=reason or "Handoff verification failed.")

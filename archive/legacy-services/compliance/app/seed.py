@@ -22,7 +22,7 @@ async def seed_demo_policy(
         name="Development Alcohol Policy",
         version="1.0.0",
         status=PolicyStatus.ACTIVE,
-        effective_from=datetime.now(timezone.utc),
+        effective_from=datetime(2020, 1, 1, tzinfo=timezone.utc),
     )
     session.add(policy)
     await session.flush()

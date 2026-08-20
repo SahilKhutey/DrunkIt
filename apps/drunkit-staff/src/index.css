@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :focus-visible {
+    outline: 2px solid #d9bc72;
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  .label-eyebrow {
+    @apply font-mono text-[11px] uppercase tracking-[0.18em] text-brass-500/80;
+  }
+  .data-table th {
+    @apply px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-parchment/40 border-b border-ink-700;
+  }
+  .data-table td {
+    @apply px-3 py-2.5 text-sm border-b border-ink-800;
+  }
+  .data-table tr:hover td {
+    @apply bg-ink-800/40;
+  }
+}

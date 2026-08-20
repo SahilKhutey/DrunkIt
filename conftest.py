@@ -18,9 +18,12 @@ TODO (P1): Rewrite all `from services.<legacy_name>` imports to the canonical
 
 from __future__ import annotations
 
+import os
 import pathlib
 import sys
 import types
+
+os.environ.setdefault("RATE_LIMIT_ENABLED", "false")
 
 _REPO_ROOT = pathlib.Path(__file__).parent
 _ARCHIVE_LEGACY = _REPO_ROOT / "archive" / "legacy-services"

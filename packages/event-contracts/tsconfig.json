@@ -8,8 +8,13 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "paths": {
-      "@faccp/shared-types": ["../shared-types/src/index.ts"]
-    }
+      "@faccp/shared-types": [
+        "../shared-types/src/index.ts"
+      ]
+    },
+    "outDir": "dist"
   },
-  "include": ["src/**/*"]
+  "include": [
+    "src/**/*"
+  ]
 }

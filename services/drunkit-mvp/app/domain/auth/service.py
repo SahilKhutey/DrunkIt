@@ -13,6 +13,13 @@ returns the raw code directly in the response when environment !=
 any real launch, swap the "return the code" branch for a call to an
 actual SMS provider (MSG91, Twilio, etc.) and delete that branch
 entirely — the seam is deliberately isolated in one place below.
+
+ABUSE NOTE: an IP-based rate limit (see core/limiter.py) covers "one
+IP hitting us too fast," but does nothing to stop someone spraying OTP
+requests at one victim's phone number from many different IPs/devices
+— every request costs the platform real SMS spend and harasses that
+person's phone. OTP_REQUEST_COOLDOWN_SECONDS below is the IP-independent
+defense: it throttles by phone number itself, at the data layer.
 """
 from __future__ import annotations
 
@@ -23,22 +30,17 @@ from datetime import timedelta
 from sqlalchemy.orm import Session as DBSession
 
 from app.core.config import get_settings
+from app.core.logging import get_logger, mask_phone
 from app.core.time import utcnow
 from app.db import models
 
 settings = get_settings()
+log = get_logger(__name__)
 
 OTP_TTL_SECONDS = 5 * 60
 OTP_MAX_ATTEMPTS = 5
+OTP_REQUEST_COOLDOWN_SECONDS = 45
 SESSION_TTL_DAYS = 30
-# Per-phone cooldown: a new OTP cannot be requested while an unconsumed,
-# non-expired challenge already exists for that number. This is
-# IP-independent — it stops one actor from hammering a victim's phone
-# number from many different source IPs (which the IP-level limiter
-# in core/limiter.py can't prevent alone). If a user genuinely didn't
-# receive the code they should wait for it to expire (OTP_TTL_SECONDS)
-# before requesting a new one.
-OTP_COOLDOWN_CHECK = True  # can be set False in tests if needed
 
 
 class AuthError(Exception):
@@ -65,19 +67,21 @@ def request_otp(db: DBSession, *, phone: str) -> tuple[str, int, str | None]:
     """
     phone = phone.strip()
 
-    # Per-phone cooldown: block if an active, unconsumed challenge exists.
-    existing = (
+    most_recent = (
         db.query(models.OTPChallenge)
-        .filter_by(phone=phone, consumed=False)
+        .filter_by(phone=phone)
         .order_by(models.OTPChallenge.created_at.desc())
         .first()
     )
-    if existing is not None and existing.expires_at > utcnow():
-        raise AuthError(
-            "COOLDOWN_ACTIVE",
-            "A verification code was already sent to this number. "
-            "Please wait for it to expire before requesting a new one.",
-        )
+    if most_recent is not None:
+        seconds_since = (utcnow() - most_recent.created_at).total_seconds()
+        if seconds_since < OTP_REQUEST_COOLDOWN_SECONDS:
+            wait = int(OTP_REQUEST_COOLDOWN_SECONDS - seconds_since)
+            log.info("otp_request_cooldown_blocked", phone=mask_phone(phone), wait_seconds=wait)
+            raise AuthError(
+                "COOLDOWN_ACTIVE",
+                f"Please wait {wait}s before requesting another code.",
+            )
 
     consumer = db.query(models.Consumer).filter_by(phone=phone).first()
     if consumer is None:
@@ -95,6 +99,8 @@ def request_otp(db: DBSession, *, phone: str) -> tuple[str, int, str | None]:
     db.commit()
     db.refresh(challenge)
 
+    log.info("otp_requested", phone=mask_phone(phone), challenge_id=challenge.id)
+
     dev_otp = code if settings.environment != "production" else None
     return challenge.id, OTP_TTL_SECONDS, dev_otp
 
@@ -109,18 +115,22 @@ def verify_otp(db: DBSession, *, phone: str, code: str) -> models.Session:
         .first()
     )
     if challenge is None:
+        log.info("otp_verify_no_active_challenge", phone=mask_phone(phone))
         raise AuthError("NO_ACTIVE_CHALLENGE", "No active verification code for this number. Request a new one.")
 
     if challenge.expires_at < utcnow():
+        log.info("otp_verify_expired", phone=mask_phone(phone))
         raise AuthError("CODE_EXPIRED", "Verification code has expired. Request a new one.")
 
     if challenge.attempts >= OTP_MAX_ATTEMPTS:
+        log.warning("otp_verify_locked_out", phone=mask_phone(phone))
         raise AuthError("TOO_MANY_ATTEMPTS", "Too many incorrect attempts. Request a new code.")
 
     if challenge.code_hash != _hash_code(code.strip()):
         challenge.attempts += 1
         db.add(challenge)
         db.commit()
+        log.info("otp_verify_wrong_code", phone=mask_phone(phone), attempts=challenge.attempts)
         raise AuthError("INVALID_CODE", "Incorrect verification code.")
 
     challenge.consumed = True
@@ -140,6 +150,8 @@ def verify_otp(db: DBSession, *, phone: str, code: str) -> models.Session:
     db.add(session)
     db.commit()
     db.refresh(session)
+
+    log.info("otp_verified_session_issued", phone=mask_phone(phone), consumer_id=consumer.id)
     return session
 
 

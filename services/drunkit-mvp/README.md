@@ -1,9 +1,10 @@
 # DrunkIt / FACCP — MVP
 
 A working, end-to-end slice of the regulated alcohol quick-commerce platform:
-**Eligibility Engine → Catalog/Listing Engine → Order → Delivery**, all in one
-deployable FastAPI service. This is deliberately a fraction of the full FACCP
-architecture — see "What's deferred" below for what was cut and why.
+**Auth → Eligibility Engine → Catalog/Listing Engine → Order → Delivery**, all
+in one deployable FastAPI service, plus a consumer web frontend in the
+sibling `drunkit-web/` project. This is deliberately a fraction of the full
+FACCP architecture — see "What's deferred" below for what was cut and why.
 
 ## ⚠️ Before this touches real users
 
@@ -14,7 +15,7 @@ without a documented legal basis reviewed by qualified counsel, recorded in
 that state's `legal_basis_ref`. The system fails closed by design — any state
 not explicitly listed is treated as non-serviceable.
 
-## Quick start
+## Quick start (SQLite, no Docker)
 
 ```bash
 python -m venv .venv
@@ -33,7 +34,34 @@ and a temporary `DEMO_STATE` jurisdiction entry — remove that entry from
 python -m scripts.seed
 ```
 
-Then visit `http://127.0.0.1:8000/docs` for interactive API docs.
+Then visit `http://127.0.0.1:8000/docs` for interactive API docs. Auth is
+real phone+OTP — `POST /v1/auth/otp/request` returns `dev_otp` in the
+response outside production (no SMS provider is wired in yet), then
+`POST /v1/auth/otp/verify` with that code returns a bearer token for every
+other consumer-scoped call.
+
+The seed script above also creates two demo staff logins for the
+`/v1/admin/*` API — see "Staff authentication" below:
+`admin@demo.local` / `demo-admin-password-123` (platform admin) and
+`retailer@demo.local` / `demo-retailer-password-123` (scoped to the demo
+retailer). For a real deployment, create the first admin with
+`python -m scripts.create_admin --email you@company.com` instead.
+
+## Quick start (Docker + Postgres)
+
+```bash
+cp .env.example .env   # values here aren't used by compose, but keep it for local tooling
+docker compose up --build
+```
+
+This starts Postgres, waits for it to be healthy, runs `alembic upgrade head`,
+then starts the API on `:8000` — see `Dockerfile`'s `CMD` and
+`docker-compose.yml`. Seed it the same way as above, pointed at the
+containerized DB:
+
+```bash
+DATABASE_URL=postgresql+psycopg2://drunkit:drunkit@localhost:5432/drunkit_mvp python -m scripts.seed
+```
 
 ## Architecture
 
@@ -41,9 +69,14 @@ Then visit `http://127.0.0.1:8000/docs` for interactive API docs.
 Consumer API                          Admin API
      │                                     │
      ▼                                     ▼
-Eligibility Engine  ──────┐      Retailer/Store/Product setup
-  (age + jurisdiction)    │      Listing/Price/Inventory setup
-     │                    │      Delivery ops (assign/transition/handoff)
+Auth (phone + OTP)              Retailer/Store/Product setup
+  session token, not a           Listing/Price/Inventory setup
+  client-supplied ID             Delivery ops (assign/transition/handoff)
+     │
+     ▼
+Eligibility Engine  ──────┐
+  (age + jurisdiction)    │
+     │                    │
      ▼                    │
 Listing Engine  ◄─────────┘
   (composes Product + Inventory
@@ -66,6 +99,10 @@ Delivery Service
 
 Key invariants enforced in code (not just UI):
 
+- **Identity from the session, never the client.** Every consumer-scoped
+  endpoint resolves the current consumer from the bearer token
+  (`app/api/deps.py`) — a client can't act as another consumer by passing a
+  different ID. See `tests/test_order_flow.py::test_client_cannot_impersonate_another_consumer_via_header`.
 - **Fail closed everywhere.** Missing price, missing inventory, or an
   unlisted jurisdiction all result in "not available," never a guess.
 - **Server-side eligibility, every time.** `get_current_eligibility()` is
@@ -76,33 +113,148 @@ Key invariants enforced in code (not just UI):
 - **Controlled handoff.** `Delivery` can only become `DELIVERED` via
   `HANDOFF_VERIFICATION` — there is no code path that skips it.
 
+## Production hardening
+
+Four things landed here beyond the initial MVP slice — each tested against
+a real running server, not just unit tests:
+
+### Database migrations (Alembic)
+
+`migrations/` is wired to the app's own `Base.metadata` and reads
+`DATABASE_URL` from the same settings the app uses — one source of truth,
+no separate URL to keep in sync in `alembic.ini`.
+
+```bash
+alembic upgrade head              # apply all pending migrations
+alembic revision --autogenerate -m "describe your change"   # after editing models
+```
+
+`Base.metadata.create_all()` (the dev convenience that used to run on every
+startup) now only fires when `AUTO_CREATE_TABLES=true` **and** `DATABASE_URL`
+is SQLite — see `main.py`'s `lifespan`. Anything else (Postgres, or a SQLite
+file you actually care about) is expected to go through Alembic. This was
+verified against a real local Postgres 16 instance: `alembic
+revision --autogenerate` correctly detected all 15 tables from a clean
+database, `alembic upgrade head` applied them, and the full
+auth → eligibility → order → delivery flow was exercised against that
+Postgres-backed API with `AUTO_CREATE_TABLES=false`.
+
+### Postgres support
+
+`app/db/session.py` adds `pool_pre_ping`, bounded pool size, and connection
+recycling for any non-SQLite `DATABASE_URL` — SQLite's dev-only
+`check_same_thread` connect arg is skipped for Postgres, and vice versa.
+
+### Rate limiting
+
+Two independent layers, because they defend against different things:
+
+- **IP-based (slowapi)**: `5/minute` on `/v1/auth/otp/request`, `10/minute`
+  on `/v1/auth/otp/verify`, `120/minute` default elsewhere. Stops one client
+  hammering the API.
+- **Per-phone OTP cooldown (`app/domain/auth/service.py`)**: a phone number
+  can't have a new code requested within 45 seconds of its last one,
+  regardless of which IP asks. This is the one that actually matters for
+  OTP — SMS costs money per send, and without this a phone number could be
+  harassed with texts from many different IPs, which the IP limiter alone
+  wouldn't catch.
+
+Tests disable rate limiting globally (`tests/conftest.py` sets
+`RATE_LIMIT_ENABLED=false`) so the suite's rapid-fire requests don't trip
+the same defense a real abusive client should hit — the cooldown itself is
+still tested directly in `tests/test_hardening.py`.
+
+### Structured logging
+
+`app/core/logging.py` — JSON in production, readable console output in
+dev, every log line inside a request auto-tagged with a correlation ID
+(`X-Request-ID`, generated or echoed back from the caller) via structlog's
+contextvars binding. Key domain events are logged at their source
+(`otp_requested`, `order_created`, `order_rejected` with reason,
+`delivery_transitioned`, `delivery_invalid_transition_blocked`,
+`delivery_handoff_decision`) rather than only at the API boundary, so a log
+line traces back to *why* something happened, not just that a request came
+in. Never logged: OTP codes, session tokens, raw phone numbers (masked to
+last 4 digits via `mask_phone()`), dates of birth.
+
+## Staff authentication (admin/retailer API)
+
+The admin API used to trust any caller — no auth at all. It now requires a
+real login for every `/v1/admin/*` endpoint, with two roles:
+
+- **`PLATFORM_ADMIN`** — full access: retailer creation/verification, the
+  shared product catalog, and delivery/driver ops. These are platform-level
+  decisions in this architecture, not something an individual retailer
+  controls.
+- **`RETAILER_STAFF`** — scoped to exactly one `retailer_id`. Can manage
+  their own stores, listings, prices, and inventory; cannot touch another
+  retailer's resources, verify retailers, or manage the shared catalog.
+  Enforced by `check_retailer_access()` in `app/api/deps.py`, called inside
+  each endpoint against the resource's actual `retailer_id` — never trusted
+  from the request body.
+
+Login is separate from consumer auth on purpose: `POST /v1/admin/auth/login`
+(email + password, bcrypt-hashed, rate-limited at `10/minute`) issues a
+`StaffSession` token from its own table, distinct from the consumer
+`Session` table — a leaked consumer token can never satisfy a staff
+dependency, or vice versa. There's no self-registration endpoint; a platform
+admin creates retailer staff accounts via
+`POST /v1/admin/retailers/{id}/staff`, and the very first platform admin is
+created via `python -m scripts.create_admin --email you@company.com`
+(prompts for a password with `getpass`, never accepts one as a CLI argument).
+
+This was verified two ways: the automated suite (`tests/test_staff_auth.py`)
+covers unauthenticated rejection, wrong password, cross-role rejection, and
+the cross-retailer boundary — plus a live HTTP smoke test (not just
+`TestClient`) that created two real retailers, logged in as each one's
+staff, and confirmed Retailer A's staff gets a 403 attempting to create a
+store under Retailer B while succeeding under their own. A migration
+(`migrations/versions/b7197c194184_add_staff_auth_tables.py`) adds the two
+new tables — run `alembic upgrade head` after pulling this in.
+
 ## Repository layout
 
 ```
 app/
-  core/config.py          Settings (env-driven)
+  core/
+    config.py                Settings (env-driven)
+    logging.py                Structured logging + request-ID middleware
+    limiter.py                 IP-based rate limiter (slowapi)
+    time.py                     Shared UTC "now" helper
   db/
-    models.py              SQLAlchemy models — Product/Retailer/Store/
-                            Inventory/Price/Listing kept as separate tables
-    session.py              Engine/session setup
+    models.py                SQLAlchemy models — Product/Retailer/Store/
+                              Inventory/Price/Listing/Session/OTPChallenge/
+                              StaffUser/StaffSession kept as separate tables
+    session.py                 Engine/session setup (SQLite + Postgres)
   domain/
+    auth/service.py           Consumer phone+OTP, session issuance, cooldown
+    staff_auth/service.py     Admin/retailer email+password login (bcrypt)
     eligibility/
-      policy_store.py       Loads policies/jurisdictions.json (only reader)
-      engine.py              Pure age+jurisdiction decision function
-      service.py              Wires engine to DB + audit log
+      policy_store.py          Loads policies/jurisdictions.json (only reader)
+      engine.py                 Pure age+jurisdiction decision function
+      service.py                 Wires engine to DB + audit log
     listing/
-      composer.py            Builds ConsumerListingView from separate sources
-      service.py               Nearby-store query + composition
-    order/service.py          Cart -> Order, server-side re-validation
-    delivery/service.py       Delivery state machine + handoff gate
+      composer.py               Builds ConsumerListingView from separate sources
+      service.py                  Nearby-store query + composition
+    order/service.py             Cart -> Order, server-side re-validation
+    delivery/service.py          Delivery state machine + handoff gate
   api/
-    consumer.py               Public-facing endpoints
-    admin.py                  Retailer/store/product/listing/delivery ops
-  schemas/schemas.py           Pydantic request/response models
-  main.py                       FastAPI app wiring
+    deps.py                   Auth deps — consumer (required/optional) AND
+                               staff (required, + role/retailer-scope checks)
+    auth.py                    Consumer OTP request/verify endpoints
+    staff_auth.py               Staff login/me endpoints
+    consumer.py                 Public-facing endpoints (session-scoped)
+    admin.py                     Retailer/store/product/listing/delivery ops
+                                  (every endpoint now requires staff auth)
+  schemas/schemas.py              Pydantic request/response models
+  main.py                          FastAPI app wiring
 
+migrations/                    Alembic migration environment + versions/
 policies/jurisdictions.json    Per-state legal rules (data, not code)
-scripts/seed.py                  Demo data for local testing
+scripts/
+  seed.py                       Demo data (products, listings, demo staff logins)
+  create_admin.py                 Creates the first PLATFORM_ADMIN account
+Dockerfile, docker-compose.yml Postgres + API, migrations run on container start
 ```
 
 ## What's deferred (intentionally, from the original FACCP spec)
@@ -121,7 +273,11 @@ retailers and real orders:
 - Real identity/ID verification at the eligibility and handoff steps (this
   MVP takes a self-reported date of birth — swap in a real verification
   provider before this handles actual regulated transactions)
-- RBAC/authz on the admin API (currently assumes a trusted internal caller)
+- Real SMS provider for OTP delivery (dev-mode returns the code directly —
+  see the module docstring in `app/domain/auth/service.py` for the swap point)
+- A staff-facing web UI — the admin/retailer API is real and authenticated
+  now (see "Staff authentication" above), but there's no dashboard for it
+  yet, only the API directly
 
 Each of these has a clear seam to plug into later — e.g. `mark_handoff_verified()`
 in `delivery/service.py` is exactly where a real ID-scan/OTP provider replaces
@@ -133,5 +289,12 @@ the current pass-through boolean, without touching the state machine around it.
 pytest tests/ -v
 ```
 
-Covers the eligibility engine's decision matrix, the listing fail-closed
-behavior, and the order flow's stock/eligibility enforcement.
+26 tests covering the eligibility engine's decision matrix, the listing
+fail-closed behavior, the order flow's stock/eligibility enforcement, the
+consumer auth/impersonation boundary, the rate-limiting/cooldown behavior,
+and staff auth's role + cross-retailer boundary. These run against
+in-memory SQLite for speed; the migration path to Postgres is verified
+separately (see "Production hardening" above) rather than in the automated
+suite, which is the standard tradeoff — fast deterministic tests for logic,
+a real database for proving the schema migrates correctly.
+

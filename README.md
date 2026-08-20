@@ -35,6 +35,37 @@ services/               Python microservices and shared backend library
 tests/                  Unit tests for platform services and shared modules
 ```
 
+## DrunkIt Core Systems
+
+The platform includes a complete, end-to-end slice of the regulated alcohol commerce stack:
+
+1. **DrunkIt MVP Backend (`services/drunkit-mvp`)**: FastAPI service (port `8000`) with phone OTP consumer auth, bcrypt staff auth (`PLATFORM_ADMIN` vs `RETAILER_STAFF`), state jurisdiction eligibility engine, fail-closed listing engine, server-side verified checkout, delivery state machine with handoff verification gates, and Alembic migrations.
+2. **DrunkIt Consumer Web (`apps/drunkit-web`)**: Vite + React + Tailwind storefront (port `5173`) with bottle-glass ink palette, excise duty seal badge, age verification, location/catalog discovery, cart, checkout, and real-time delivery tracking.
+3. **DrunkIt Staff Console (`apps/drunkit-staff`)**: Vite + React + Tailwind operations dashboard (port `5174`) with role-adaptive views for platform admins (retailers, staff onboarding, shared product catalog, delivery dispatch) and retailer staff (store management, listings, orders).
+
+### Quick Start (Full DrunkIt Stack)
+
+Start the entire DrunkIt stack with Docker Compose:
+
+```bash
+docker compose --profile core up --build
+```
+
+Or run services locally:
+
+```bash
+# 1. Backend MVP API (port 8000)
+cd services/drunkit-mvp
+python -m scripts.seed   # Seeds demo catalog and staff accounts
+uvicorn app.main:app --reload --port 8000
+
+# 2. Consumer Web App (port 5173)
+pnpm dev:web
+
+# 3. Staff Operations Console (port 5174)
+pnpm dev:staff
+```
+
 ## Local Development
 
 Install frontend workspace dependencies:
@@ -58,11 +89,9 @@ pnpm dev
 Run focused Python tests from PowerShell:
 
 ```powershell
-$env:PYTHONPATH="$PWD\services\_common;$PWD\services\developer-portal"
-.\.venv\Scripts\python.exe -m pytest tests\unit\test_phase4.py tests\unit\test_phase5.py -q -p no:cacheprovider
+$env:PYTHONPATH="$PWD\services\drunkit-mvp"
+.\.venv\Scripts\python.exe -m pytest services\drunkit-mvp\tests -v
 ```
-
-For services that use the local package name `app`, run focused tests with only that service on `PYTHONPATH` to avoid importing the wrong service package.
 
 ## Current Development Status
 
