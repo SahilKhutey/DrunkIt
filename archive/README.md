@@ -8,17 +8,11 @@ integrated into the canonical source tree or retired.
 
 ---
 
-## reference/
+## Retired Staging Areas
 
-Reference implementations that served as staging areas during development.
-The canonical versions of this code now live in `services/drunkit-mvp/` (backend)
-and `apps/drunkit-web/` (frontend).
-
-| Directory | Canonical Replacement | Archived |
-|---|---|---|
-| `drunkit-mvp-reference/` | `services/drunkit-mvp/` | 2026-08-16 |
-| `drunkit-mvp1-reference/` | `services/drunkit-mvp/` | 2026-08-16 |
-| `drunkit-web-reference/` | `apps/drunkit-web/` | 2026-08-16 |
+Reference staging implementations (`drunkit-mvp-reference/`, `drunkit-mvp1-reference/`, and `drunkit-web-reference/`) have been consolidated into their canonical locations:
+- Backend: [`services/drunkit-mvp/`](../services/drunkit-mvp/)
+- Frontend: [`apps/drunkit-web/`](../apps/drunkit-web/) and [`apps/drunkit-staff/`](../apps/drunkit-staff/)
 
 ## legacy-services/
 
