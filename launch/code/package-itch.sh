@@ -13,7 +13,12 @@ if [[ -z "$VERSION" ]]; then
   exit 1
 fi
 
-WORK_DIR="build/release/$VERSION/itch"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+cd "$PROJECT_ROOT"
+
+RELEASE_DIR="build/release/$VERSION"
+WORK_DIR="$RELEASE_DIR/itch"
 mkdir -p "$WORK_DIR/primordials"
 
 echo "🎮 Packaging itch.io bundle..."
@@ -57,10 +62,25 @@ GitHub: https://github.com/SahilKhutey/Primodials
 Discord: https://discord.gg/primordials
 EOF
 
-# Create ZIP
-cd "$WORK_DIR"
-zip -r "primordials-itch-$VERSION.zip" primordials -q
-cd - > /dev/null
+# Create ZIP archive
+ZIP_OUT="$RELEASE_DIR/primordials-itch-$VERSION.zip"
+if command -v zip >/dev/null 2>&1; then
+  (cd "$WORK_DIR" && zip -r "../../primordials-itch-$VERSION.zip" primordials -q)
+  cp "$ZIP_OUT" "$WORK_DIR/primordials-itch-$VERSION.zip" 2>/dev/null || true
+else
+  python -c "
+import zipfile, os
+work_dir = r'$WORK_DIR'
+zip_out = r'$ZIP_OUT'
+with zipfile.ZipFile(zip_out, 'w', zipfile.ZIP_DEFLATED) as zf:
+    for root, dirs, files in os.walk(os.path.join(work_dir, 'primordials')):
+        for f in files:
+            fp = os.path.join(root, f)
+            arcname = os.path.relpath(fp, work_dir)
+            zf.write(fp, arcname)
+print(f'Created {zip_out}')
+"
+fi
 
-echo "✅ itch.io package: build/release/$VERSION/itch/primordials-itch-$VERSION.zip"
-ls -lh "build/release/$VERSION/itch/"
+echo "✅ itch.io package: build/release/$VERSION/primordials-itch-$VERSION.zip"
+

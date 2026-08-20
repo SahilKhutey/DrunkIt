@@ -1,0 +1,148 @@
+{
+  "": "https://primordials.dev/schemas/biome-v2.json",
+  "id": "tundra",
+  "version": "2.0.0",
+  "name": "Tundra",
+  "description": "The Arctic summer \u2014 lichens spread, lemmings swarm, snowy owls hunt over the permafrost.",
+  "author": "Gensouls Lab",
+  "tags": [
+    "polar",
+    "cyclic",
+    "high-latitude"
+  ],
+  "world": {
+    "width": 1920,
+    "height": 1080,
+    "wrap": true,
+    "temperature": -2.0
+  },
+  "species": [
+    {
+      "id": "lichen",
+      "name": "Arctic Lichen",
+      "type": "producer",
+      "color": "#A8B5A0",
+      "shape": "square",
+      "size": 4,
+      "initial": 450,
+      "behavior": {
+        "movement": {
+          "type": "wander",
+          "speed": 0.5,
+          "turnRate": 0.5
+        },
+        "feeding": {
+          "diet": [],
+          "consumptionRate": 0.08,
+          "hungerRate": 0,
+          "maxHunger": 1
+        },
+        "reproduction": {
+          "rate": 0.03,
+          "threshold": 0.7,
+          "offspring": 1,
+          "maturityAge": 25
+        }
+      },
+      "stats": {
+        "maxEnergy": 1.0,
+        "metabolism": 0.003,
+        "lifespan": 800,
+        "vision": 15
+      }
+    },
+    {
+      "id": "lemming",
+      "name": "Tundra Lemming",
+      "type": "grazer",
+      "color": "#6BCB77",
+      "shape": "circle",
+      "size": 5,
+      "initial": 140,
+      "behavior": {
+        "movement": {
+          "type": "flee",
+          "speed": 11.0,
+          "turnRate": 3.5
+        },
+        "feeding": {
+          "diet": [
+            "lichen"
+          ],
+          "consumptionRate": 0.06,
+          "hungerRate": 0.02,
+          "maxHunger": 1.0,
+          "huntSuccess": 1.0
+        },
+        "reproduction": {
+          "rate": 0.04,
+          "threshold": 0.55,
+          "offspring": 3,
+          "maturityAge": 20
+        }
+      },
+      "stats": {
+        "maxEnergy": 1.0,
+        "metabolism": 0.013,
+        "lifespan": 200,
+        "vision": 55
+      }
+    },
+    {
+      "id": "snowy-owl",
+      "name": "Snowy Owl",
+      "type": "predator",
+      "color": "#F4F1DE",
+      "shape": "triangle",
+      "size": 9,
+      "initial": 10,
+      "behavior": {
+        "movement": {
+          "type": "seek",
+          "speed": 30.0,
+          "turnRate": 5.5
+        },
+        "feeding": {
+          "diet": [
+            "lemming"
+          ],
+          "consumptionRate": 0.1,
+          "hungerRate": 0.025,
+          "maxHunger": 1.0,
+          "huntSuccess": 0.45
+        },
+        "reproduction": {
+          "rate": 0.012,
+          "threshold": 0.85,
+          "offspring": 1,
+          "maturityAge": 50
+        }
+      },
+      "stats": {
+        "maxEnergy": 1.0,
+        "metabolism": 0.022,
+        "lifespan": 240,
+        "vision": 140,
+        "speedMultiplier": 1.7
+      }
+    }
+  ],
+  "rules": {
+    "carryingCapacity": 750,
+    "extinctionThreshold": 5,
+    "respawnDelay": 50
+  },
+  "visuals": {
+    "background": "#182422",
+    "gradient": [
+      "#121A19",
+      "#182422",
+      "#223330"
+    ],
+    "particles": {
+      "enabled": true,
+      "count": 80,
+      "type": "snow"
+    }
+  }
+}

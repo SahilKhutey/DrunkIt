@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Polygonal Primordials — App Icon Master Vector, 1024×1024, scales to 16×16.
+  Brand colors:
+    Background: #0F3D3E (Deep Teal)
+    Prey:       #F4F1DE (Bone White)
+    Predator:   #FF4FA3 (Magenta)
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="Polygonal Primordials app icon">
+  <title>Polygonal Primordials</title>
+
+  <!-- Background: rounded rectangle -->
+  <rect width="1024" height="1024" rx="225" ry="225" fill="#0F3D3E"/>
+
+  <!-- Subtle inner glow -->
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#1A4D4E" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#0F3D3E" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="225" ry="225" fill="url(#glow)"/>
+
+  <!-- Orbital path (dashed ellipse, rotated) -->
+  <ellipse cx="512" cy="512" rx="340" ry="140" transform="rotate(-22 512 512)" fill="none" stroke="#F4F1DE" stroke-width="6" stroke-opacity="0.35" stroke-dasharray="14 22"/>
+
+  <!-- Prey: white circle (centered) -->
+  <circle cx="512" cy="512" r="100" fill="#F4F1DE"/>
+
+  <!-- Inner prey dot (subtle "cell" detail) -->
+  <circle cx="512" cy="512" r="24" fill="#0F3D3E"/>
+
+  <!-- Predator: magenta triangle on orbit -->
+  <g transform="translate(820 512) rotate(20)">
+    <polygon points="0,0 92,46 92,-46" fill="#FF4FA3"/>
+  </g>
+
+  <!-- Second smaller predator (counter-orbit, balance) -->
+  <g transform="translate(204 540) rotate(-160)" opacity="0.6">
+    <polygon points="0,0 50,25 50,-25" fill="#FF4FA3"/>
+  </g>
+</svg>

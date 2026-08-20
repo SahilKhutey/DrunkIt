@@ -1,0 +1,149 @@
+{
+  "": "https://primordials.dev/schemas/biome-v2.json",
+  "id": "deep-sea",
+  "version": "2.0.0",
+  "name": "Deep Sea",
+  "description": "Two kilometers down, where only red light reaches \u2014 anglerfish lure, squid dart, krill drift.",
+  "author": "Gensouls Lab",
+  "tags": [
+    "marine",
+    "abyssal",
+    "bioluminescent",
+    "intermediate"
+  ],
+  "world": {
+    "width": 1920,
+    "height": 1080,
+    "wrap": true,
+    "temperature": 4.0
+  },
+  "species": [
+    {
+      "id": "krill",
+      "name": "Abyssal Krill",
+      "type": "producer",
+      "color": "#4D9DE0",
+      "shape": "circle",
+      "size": 3,
+      "initial": 350,
+      "behavior": {
+        "movement": {
+          "type": "wander",
+          "speed": 2.0,
+          "turnRate": 1.5
+        },
+        "feeding": {
+          "diet": [],
+          "consumptionRate": 0.1,
+          "hungerRate": 0,
+          "maxHunger": 1
+        },
+        "reproduction": {
+          "rate": 0.035,
+          "threshold": 0.65,
+          "offspring": 1,
+          "maturityAge": 25
+        }
+      },
+      "stats": {
+        "maxEnergy": 1.0,
+        "metabolism": 0.008,
+        "lifespan": 400,
+        "vision": 30
+      }
+    },
+    {
+      "id": "squid",
+      "name": "Vampire Squid",
+      "type": "grazer",
+      "color": "#9B5DE5",
+      "shape": "triangle",
+      "size": 6,
+      "initial": 80,
+      "behavior": {
+        "movement": {
+          "type": "wander",
+          "speed": 14.0,
+          "turnRate": 4.0
+        },
+        "feeding": {
+          "diet": [
+            "krill"
+          ],
+          "consumptionRate": 0.08,
+          "hungerRate": 0.02,
+          "maxHunger": 1.0,
+          "huntSuccess": 0.8
+        },
+        "reproduction": {
+          "rate": 0.02,
+          "threshold": 0.7,
+          "offspring": 1,
+          "maturityAge": 40
+        }
+      },
+      "stats": {
+        "maxEnergy": 1.0,
+        "metabolism": 0.015,
+        "lifespan": 260,
+        "vision": 90
+      }
+    },
+    {
+      "id": "angler",
+      "name": "Deep Anglerfish",
+      "type": "predator",
+      "color": "#FF4FA3",
+      "shape": "hexagon",
+      "size": 9,
+      "initial": 8,
+      "behavior": {
+        "movement": {
+          "type": "seek",
+          "speed": 28.0,
+          "turnRate": 6.0
+        },
+        "feeding": {
+          "diet": [
+            "squid"
+          ],
+          "consumptionRate": 0.12,
+          "hungerRate": 0.03,
+          "maxHunger": 1.0,
+          "huntSuccess": 0.4
+        },
+        "reproduction": {
+          "rate": 0.01,
+          "threshold": 0.85,
+          "offspring": 1,
+          "maturityAge": 60
+        }
+      },
+      "stats": {
+        "maxEnergy": 1.0,
+        "metabolism": 0.025,
+        "lifespan": 200,
+        "vision": 120,
+        "speedMultiplier": 1.6
+      }
+    }
+  ],
+  "rules": {
+    "carryingCapacity": 600,
+    "extinctionThreshold": 4,
+    "respawnDelay": 60
+  },
+  "visuals": {
+    "background": "#0A0908",
+    "gradient": [
+      "#050505",
+      "#0A0908",
+      "#0F1A24"
+    ],
+    "particles": {
+      "enabled": true,
+      "count": 60,
+      "type": "bioluminescence"
+    }
+  }
+}

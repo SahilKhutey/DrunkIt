@@ -1,0 +1,148 @@
+{
+  "": "https://primordials.dev/schemas/biome-v2.json",
+  "id": "volcanic-vent",
+  "version": "2.0.0",
+  "name": "Volcanic Vent",
+  "description": "Superheated hydrothermal chimneys \u2014 chemotrophic bacteria feed giant tubeworms and vent crabs.",
+  "author": "Gensouls Lab",
+  "tags": [
+    "abyssal",
+    "geothermal",
+    "extreme",
+    "high-energy"
+  ],
+  "world": {
+    "width": 1920,
+    "height": 1080,
+    "wrap": true,
+    "temperature": 95.0
+  },
+  "species": [
+    {
+      "id": "sulfur-bacteria",
+      "name": "Chemotrophic Bacteria",
+      "type": "producer",
+      "color": "#FFD93D",
+      "shape": "circle",
+      "size": 3,
+      "initial": 600,
+      "behavior": {
+        "movement": {
+          "type": "wander",
+          "speed": 2.0,
+          "turnRate": 1.5
+        },
+        "feeding": {
+          "diet": [],
+          "consumptionRate": 0.1,
+          "hungerRate": 0,
+          "maxHunger": 1
+        },
+        "reproduction": {
+          "rate": 0.055,
+          "threshold": 0.6,
+          "offspring": 2,
+          "maturityAge": 12
+        }
+      },
+      "stats": {
+        "maxEnergy": 1.0,
+        "metabolism": 0.006,
+        "lifespan": 300,
+        "vision": 20
+      }
+    },
+    {
+      "id": "tubeworm",
+      "name": "Giant Riftia Tubeworm",
+      "type": "grazer",
+      "color": "#D62246",
+      "shape": "hexagon",
+      "size": 7,
+      "initial": 110,
+      "behavior": {
+        "movement": {
+          "type": "wander",
+          "speed": 8.0,
+          "turnRate": 2.5
+        },
+        "feeding": {
+          "diet": [
+            "sulfur-bacteria"
+          ],
+          "consumptionRate": 0.07,
+          "hungerRate": 0.015,
+          "maxHunger": 1.0,
+          "huntSuccess": 0.95
+        },
+        "reproduction": {
+          "rate": 0.025,
+          "threshold": 0.65,
+          "offspring": 1,
+          "maturityAge": 25
+        }
+      },
+      "stats": {
+        "maxEnergy": 1.0,
+        "metabolism": 0.012,
+        "lifespan": 320,
+        "vision": 45
+      }
+    },
+    {
+      "id": "vent-crab",
+      "name": "Bythograeid Crab",
+      "type": "predator",
+      "color": "#FF6B6B",
+      "shape": "triangle",
+      "size": 8,
+      "initial": 14,
+      "behavior": {
+        "movement": {
+          "type": "seek",
+          "speed": 24.0,
+          "turnRate": 4.0
+        },
+        "feeding": {
+          "diet": [
+            "tubeworm"
+          ],
+          "consumptionRate": 0.1,
+          "hungerRate": 0.02,
+          "maxHunger": 1.0,
+          "huntSuccess": 0.45
+        },
+        "reproduction": {
+          "rate": 0.016,
+          "threshold": 0.75,
+          "offspring": 1,
+          "maturityAge": 35
+        }
+      },
+      "stats": {
+        "maxEnergy": 1.0,
+        "metabolism": 0.018,
+        "lifespan": 220,
+        "vision": 85
+      }
+    }
+  ],
+  "rules": {
+    "carryingCapacity": 950,
+    "extinctionThreshold": 6,
+    "respawnDelay": 40
+  },
+  "visuals": {
+    "background": "#1F0B10",
+    "gradient": [
+      "#120508",
+      "#1F0B10",
+      "#38141D"
+    ],
+    "particles": {
+      "enabled": true,
+      "count": 140,
+      "type": "smoke-sulfur"
+    }
+  }
+}

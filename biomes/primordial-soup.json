@@ -1,0 +1,147 @@
+{
+  "": "https://primordials.dev/schemas/biome-v2.json",
+  "id": "primordial-soup",
+  "version": "2.0.0",
+  "name": "Primordial Soup",
+  "description": "4 billion years ago \u2014 amino acids spark, protocells form in warm volcanic tide pools.",
+  "author": "Gensouls Lab",
+  "tags": [
+    "ancient",
+    "geothermal",
+    "chaotic"
+  ],
+  "world": {
+    "width": 1920,
+    "height": 1080,
+    "wrap": true,
+    "temperature": 48.0
+  },
+  "species": [
+    {
+      "id": "amino-acid",
+      "name": "Amino Acid Complex",
+      "type": "producer",
+      "color": "#FFD93D",
+      "shape": "circle",
+      "size": 3,
+      "initial": 500,
+      "behavior": {
+        "movement": {
+          "type": "wander",
+          "speed": 2.5,
+          "turnRate": 2.0
+        },
+        "feeding": {
+          "diet": [],
+          "consumptionRate": 0.1,
+          "hungerRate": 0,
+          "maxHunger": 1
+        },
+        "reproduction": {
+          "rate": 0.05,
+          "threshold": 0.6,
+          "offspring": 2,
+          "maturityAge": 15
+        }
+      },
+      "stats": {
+        "maxEnergy": 1.0,
+        "metabolism": 0.006,
+        "lifespan": 350,
+        "vision": 25
+      }
+    },
+    {
+      "id": "protocell",
+      "name": "Lipid Protocell",
+      "type": "grazer",
+      "color": "#FF6B6B",
+      "shape": "hexagon",
+      "size": 6,
+      "initial": 120,
+      "behavior": {
+        "movement": {
+          "type": "wander",
+          "speed": 10.0,
+          "turnRate": 3.0
+        },
+        "feeding": {
+          "diet": [
+            "amino-acid"
+          ],
+          "consumptionRate": 0.06,
+          "hungerRate": 0.018,
+          "maxHunger": 1.0,
+          "huntSuccess": 0.9
+        },
+        "reproduction": {
+          "rate": 0.025,
+          "threshold": 0.65,
+          "offspring": 1,
+          "maturityAge": 25
+        }
+      },
+      "stats": {
+        "maxEnergy": 1.0,
+        "metabolism": 0.014,
+        "lifespan": 280,
+        "vision": 50
+      }
+    },
+    {
+      "id": "autocatalyst",
+      "name": "Autocatalytic Cluster",
+      "type": "predator",
+      "color": "#FF4FA3",
+      "shape": "star",
+      "size": 8,
+      "initial": 15,
+      "behavior": {
+        "movement": {
+          "type": "seek",
+          "speed": 22.0,
+          "turnRate": 4.5
+        },
+        "feeding": {
+          "diet": [
+            "protocell"
+          ],
+          "consumptionRate": 0.1,
+          "hungerRate": 0.022,
+          "maxHunger": 1.0,
+          "huntSuccess": 0.4
+        },
+        "reproduction": {
+          "rate": 0.018,
+          "threshold": 0.75,
+          "offspring": 1,
+          "maturityAge": 40
+        }
+      },
+      "stats": {
+        "maxEnergy": 1.0,
+        "metabolism": 0.02,
+        "lifespan": 220,
+        "vision": 80
+      }
+    }
+  ],
+  "rules": {
+    "carryingCapacity": 900,
+    "extinctionThreshold": 6,
+    "respawnDelay": 45
+  },
+  "visuals": {
+    "background": "#1A0E17",
+    "gradient": [
+      "#12080E",
+      "#1A0E17",
+      "#2E1527"
+    ],
+    "particles": {
+      "enabled": true,
+      "count": 120,
+      "type": "sparks"
+    }
+  }
+}

@@ -1,0 +1,149 @@
+{
+  "": "https://primordials.dev/schemas/biome-v2.json",
+  "id": "coral-reef",
+  "version": "2.0.0",
+  "name": "Coral Reef",
+  "description": "A riot of tropical color \u2014 zooxanthellae photosynthesize, parrotfish graze, moray eels strike.",
+  "author": "Gensouls Lab",
+  "tags": [
+    "marine",
+    "tropical",
+    "biodiverse",
+    "colorful"
+  ],
+  "world": {
+    "width": 1920,
+    "height": 1080,
+    "wrap": true,
+    "temperature": 28.0
+  },
+  "species": [
+    {
+      "id": "zooxanthellae",
+      "name": "Zooxanthellae",
+      "type": "producer",
+      "color": "#4ECDC4",
+      "shape": "circle",
+      "size": 4,
+      "initial": 500,
+      "behavior": {
+        "movement": {
+          "type": "wander",
+          "speed": 1.0,
+          "turnRate": 1.0
+        },
+        "feeding": {
+          "diet": [],
+          "consumptionRate": 0.1,
+          "hungerRate": 0,
+          "maxHunger": 1
+        },
+        "reproduction": {
+          "rate": 0.045,
+          "threshold": 0.65,
+          "offspring": 2,
+          "maturityAge": 18
+        }
+      },
+      "stats": {
+        "maxEnergy": 1.0,
+        "metabolism": 0.005,
+        "lifespan": 500,
+        "vision": 25
+      }
+    },
+    {
+      "id": "parrotfish",
+      "name": "Parrotfish",
+      "type": "grazer",
+      "color": "#F18F01",
+      "shape": "hexagon",
+      "size": 6,
+      "initial": 130,
+      "behavior": {
+        "movement": {
+          "type": "wander",
+          "speed": 13.0,
+          "turnRate": 3.5
+        },
+        "feeding": {
+          "diet": [
+            "zooxanthellae"
+          ],
+          "consumptionRate": 0.06,
+          "hungerRate": 0.018,
+          "maxHunger": 1.0,
+          "huntSuccess": 0.95
+        },
+        "reproduction": {
+          "rate": 0.028,
+          "threshold": 0.65,
+          "offspring": 2,
+          "maturityAge": 28
+        }
+      },
+      "stats": {
+        "maxEnergy": 1.0,
+        "metabolism": 0.014,
+        "lifespan": 260,
+        "vision": 70
+      }
+    },
+    {
+      "id": "moray-eel",
+      "name": "Moray Eel",
+      "type": "predator",
+      "color": "#FF4FA3",
+      "shape": "triangle",
+      "size": 10,
+      "initial": 12,
+      "behavior": {
+        "movement": {
+          "type": "seek",
+          "speed": 26.0,
+          "turnRate": 5.0
+        },
+        "feeding": {
+          "diet": [
+            "parrotfish"
+          ],
+          "consumptionRate": 0.1,
+          "hungerRate": 0.022,
+          "maxHunger": 1.0,
+          "huntSuccess": 0.4
+        },
+        "reproduction": {
+          "rate": 0.015,
+          "threshold": 0.8,
+          "offspring": 1,
+          "maturityAge": 45
+        }
+      },
+      "stats": {
+        "maxEnergy": 1.0,
+        "metabolism": 0.02,
+        "lifespan": 220,
+        "vision": 100,
+        "speedMultiplier": 1.5
+      }
+    }
+  ],
+  "rules": {
+    "carryingCapacity": 850,
+    "extinctionThreshold": 6,
+    "respawnDelay": 50
+  },
+  "visuals": {
+    "background": "#0B2027",
+    "gradient": [
+      "#051318",
+      "#0B2027",
+      "#143642"
+    ],
+    "particles": {
+      "enabled": true,
+      "count": 100,
+      "type": "coral-spores"
+    }
+  }
+}
