@@ -1,0 +1,36 @@
+# Delhi NCT (IN-DL) Alcohol Regulatory Policy
+jurisdiction_code: "IN-DL"
+jurisdiction_name: "Delhi NCT"
+version: "2026.1"
+effective_from: "2026-01-01T00:00:00Z"
+timezone: "Asia/Kolkata"
+
+legal_drinking_age:
+  spirits: 25
+  beer: 25
+  wine: 25
+
+channels:
+  in_store:
+    allowed: true
+  online_ordering:
+    allowed: false    # Discovery only under current policy
+  home_delivery:
+    allowed: false
+
+operating_hours:
+  open_time: "10:00"
+  close_time: "22:00"
+
+possession_limits_ml:
+  spirits: 9000     # 9 Litres
+  beer: 18000
+
+dry_days_recurring:
+  - "01-26"  # Republic Day
+  - "08-15"  # Independence Day
+  - "10-02"  # Gandhi Jayanti
+
+mandatory_checks:
+  age_verification: true
+  retailer_licence: true

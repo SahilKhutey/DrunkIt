@@ -1,0 +1,40 @@
+# Maharashtra (IN-MH) Alcohol Regulatory Policy
+jurisdiction_code: "IN-MH"
+jurisdiction_name: "Maharashtra"
+version: "2026.1"
+effective_from: "2026-01-01T00:00:00Z"
+timezone: "Asia/Kolkata"
+
+legal_drinking_age:
+  spirits: 25
+  beer: 21
+  wine: 21
+
+channels:
+  in_store:
+    allowed: true
+  online_ordering:
+    allowed: true
+  home_delivery:
+    allowed: false    # Direct platform delivery prohibited without FL-BR permit / retailer specific license
+    requires_permit: true
+
+operating_hours:
+  open_time: "10:30"
+  close_time: "22:30"
+
+possession_limits_ml:
+  spirits: 3000     # 3 Litres
+  beer: 6000        # 6 Litres
+  wine: 3000
+
+dry_days_recurring:
+  - "01-26"  # Republic Day
+  - "05-01"  # Maharashtra Day
+  - "08-15"  # Independence Day
+  - "10-02"  # Gandhi Jayanti
+
+mandatory_checks:
+  age_verification: true
+  liquor_permit: true
+  retailer_licence: true

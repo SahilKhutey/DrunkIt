@@ -1,0 +1,37 @@
+# Goa (IN-GA) Alcohol Regulatory Policy
+jurisdiction_code: "IN-GA"
+jurisdiction_name: "Goa"
+version: "2026.1"
+effective_from: "2026-01-01T00:00:00Z"
+timezone: "Asia/Kolkata"
+
+legal_drinking_age:
+  spirits: 18
+  beer: 18
+  wine: 18
+
+channels:
+  in_store:
+    allowed: true
+  online_ordering:
+    allowed: true
+  home_delivery:
+    allowed: false    # Takeaway / in-store pickup only
+
+operating_hours:
+  open_time: "09:00"
+  close_time: "23:00"
+
+possession_limits_ml:
+  spirits: 12000    # 12 Litres
+  beer: 24000
+
+dry_days_recurring:
+  - "01-26"  # Republic Day
+  - "08-15"  # Independence Day
+  - "10-02"  # Gandhi Jayanti
+  - "12-19"  # Goa Liberation Day
+
+mandatory_checks:
+  age_verification: true
+  retailer_licence: true

@@ -1,0 +1,16 @@
+node_modules/
+.next/
+.turbo/
+__pycache__/
+*.pyc
+.venv/
+.env
+.env.*
+!.env.example
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+dist/
+build/
+postgres_data/
+minio_data/

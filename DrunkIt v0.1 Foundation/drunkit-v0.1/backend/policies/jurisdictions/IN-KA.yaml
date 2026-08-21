@@ -1,0 +1,38 @@
+# Karnataka (IN-KA) Alcohol Regulatory Policy
+jurisdiction_code: "IN-KA"
+jurisdiction_name: "Karnataka"
+version: "2026.1"
+effective_from: "2026-01-01T00:00:00Z"
+timezone: "Asia/Kolkata"
+
+legal_drinking_age:
+  spirits: 21
+  beer: 21
+  wine: 21
+
+channels:
+  in_store:
+    allowed: true
+  online_ordering:
+    allowed: false    # Discovery only, ordering/payment remains with retailer
+  home_delivery:
+    allowed: false    # Prohibited under Karnataka Excise Act
+
+operating_hours:
+  open_time: "10:00"
+  close_time: "22:30"
+
+possession_limits_ml:
+  spirits: 2300     # 2.3 Litres (approx 3 bottles)
+  beer: 18000
+  wine: 9000
+
+dry_days_recurring:
+  - "01-26"  # Republic Day
+  - "08-15"  # Independence Day
+  - "10-02"  # Gandhi Jayanti
+  - "11-01"  # Karnataka Rajyotsava
+
+mandatory_checks:
+  age_verification: true
+  retailer_licence: true
