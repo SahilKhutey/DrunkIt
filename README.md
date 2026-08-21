@@ -104,14 +104,21 @@ The codebase contains production-oriented foundations, but it should still be tr
 - End-to-end compliance, payment, verification, and delivery flows.
 - Legal review of licensing, privacy, and regulated-commerce obligations.
 
-## Documentation
+## Documentation & Strategic Architecture
 
-- [Architecture](./docs/architecture/Architecture.md)
-- [Development Status](./docs/DEVELOPMENT_STATUS.md)
-- [Operations Deployment](./docs/operations/Deployment.md)
-- [Privacy Architecture](./docs/privacy/Privacy-Architecture.md)
-- [Regulatory Model](./docs/compliance/Regulatory-Model.md)
-- [Commercialization Guide](./COMMERCIALIZATION.md)
+- **Strategy & Rebrand**: [Strategic Rebrand & Architecture Blueprint](./docs/strategy/STRATEGIC_REBRAND_AND_ARCHITECTURE.md)
+- **Product Architecture & Stack v1.0**: [Product Architecture & Technology Stack v1.0](./docs/architecture/PRODUCT_ARCHITECTURE_AND_TECH_STACK_V1.md)
+- **Core Domain Model**: [Domain Model & Entity Relationships](./docs/architecture/DOMAIN_MODEL.md)
+- **Roadmap & Sprints**: [Development Process, Phased Roadmap & Engineering Backlog](./docs/architecture/DEVELOPMENT_PROCESS_AND_ROADMAP.md)
+- **Indian Market & SAM**: [Indian Alcohol Market Sizing & Regulatory SAM/TAM Model](./docs/research/INDIA_ALCOHOL_MARKET_AND_SAM_ANALYSIS.md)
+- **Global Indie Market**: [Global Independent & Craft Alcohol Analysis (2026)](./docs/research/GLOBAL_INDEPENDENT_AND_LOCAL_ALCOHOL_MARKET.md)
+- **Regulatory Matrix as Code**: [State Regulatory Matrix as Code](./docs/compliance/REGULATORY_MATRIX.md)
+- **Compliance Engine Spec**: [Regulatory Engine & Compliance Decision API](./docs/compliance/REGULATORY_ENGINE_SPEC.md)
+- **Platform Microservices**: [Platform System Architecture](./docs/architecture/Architecture.md)
+- **Development Status**: [Development Status](./docs/DEVELOPMENT_STATUS.md)
+- **Operations & Deployment**: [Operations Deployment](./docs/operations/Deployment.md)
+- **Privacy & Trust**: [Privacy Architecture](./docs/privacy/Privacy-Architecture.md)
+- **Commercialization**: [Commercialization Guide](./COMMERCIALIZATION.md)
 
 ## Commercial Use
 
