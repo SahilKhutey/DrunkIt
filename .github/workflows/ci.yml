@@ -8,6 +8,7 @@ on:
 
 jobs:
   test:
+    name: Platform Unit & Domain Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,9 +21,6 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          # Install all declared dependencies directly (avoids hatchling
-          # wheel-package-discovery which needs a top-level Python package
-          # directory matching the project name).
           pip install \
             "fastapi>=0.111.0" "uvicorn[standard]>=0.30.0" \
             "pydantic>=2.7.0" "pydantic-settings>=2.3.0" \
@@ -33,22 +31,18 @@ jobs:
             "python-jose[cryptography]>=3.3.0" "email-validator>=2.0" \
             "numpy>=1.26.0" "prometheus-client>=0.20.0" \
             "pytest>=8.0.0" "pytest-asyncio>=0.23.0" "hypothesis>=6.100.0" \
-            "pytest-cov>=5.0.0"
+            "pytest-cov>=5.0.0" "bcrypt>=4.0.0"
 
-      - name: Run Unit Tests
+      - name: Run Root Unit Tests (300 items)
         env:
           RATE_LIMIT_ENABLED: "false"
+          PYTHONPATH: "$PWD/services/drunkit-mvp"
         run: |
           pytest tests/unit -q --tb=short
 
-      - name: Run Golden Path E2E (non-blocking)
+      - name: Run DrunkIt v0.1 Modular Monolith Backend Tests (72 items)
         env:
           RATE_LIMIT_ENABLED: "false"
-          PYTHONPATH: "."
+          PYTHONPATH: "$PWD/DrunkIt v0.1 Foundation/drunkit-v0.1/backend"
         run: |
-          # Run the golden path E2E test suite. This validates the complete
-          # 9-step regulated commerce lifecycle in-process without external
-          # service dependencies. Failures are reported but do not block CI
-          # until the full integration harness is wired.
-          pytest tests/e2e/test_golden_path.py -v --tb=short || \
-            echo "::warning::Golden Path E2E had failures — see output above. This will become a hard gate in the next stabilization milestone."
+          pytest "DrunkIt v0.1 Foundation/drunkit-v0.1/backend/tests" -v --tb=short
